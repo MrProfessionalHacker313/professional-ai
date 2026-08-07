@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional AI is the world's most powerful AI — coding in every language, cybersecurity expertise, 8K video & image generation, voice-over, offline mode, 40+ languages. Free to start.">
+    <meta name="keywords" content="professional ai,best ai in the world,ai in urdu,ai in hindi,ai for pakistan,ai video maker,ai coding tool,ai security,free ai chatbot,best ai 2026">
+    <meta name="author" content="Professional AI">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Professional AI — The World's Most Powerful AI | Code, Security, Media, 40+ Languages">
+    <meta property="og:description" content="Professional AI is the world's most powerful AI — coding in every language, cybersecurity expertise, 8K video & image generation, voice-over, offline mode, 40+ languages. Free to start.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://professionalai.com">
+    <meta property="og:image" content="https://professionalai.com/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Professional AI — The World's Most Powerful AI">
+    <meta name="twitter:description" content="Code, create, secure, communicate — all in one AI. 40+ languages, 8K media, offline mode, free to start.">
+    <title>Professional AI — The World's Most Powerful AI | Code, Security, Media, 40+ Languages</title>
+    
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Professional AI",
+        "operatingSystem": "Web, Android, iOS, Windows, macOS, Linux",
+        "applicationCategory": "AIApplication",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "12000"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "19.99",
+            "priceCurrency": "USD"
+        }
+    }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --accent: #06b6d4;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,138.7C960,139,1056,117,1152,117.3C1248,117,1344,139,1392,149.3L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-size: cover;
+            background-position: bottom;
+        }
+
+        .hero-content {
+            max-width: 1200px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-logo {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-tagline {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: white;
+            color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-3px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: var(--light);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--gray);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .feature-card p {
+            color: var(--gray);
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 6rem 2rem;
+            background: white;
+        }
+
+        .pricing-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            align-items: stretch;
+        }
+
+        .pricing-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .pricing-card.featured {
+            border-color: var(--primary);
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .price-period {
+            color: var(--gray);
+            font-size: 1rem;
+        }
+
+        .pricing-card ul {
+            list-style: none;
+            margin: 2rem 0;
+            text-align: left;
+        }
+
+        .pricing-card ul li {
+            padding: 0.75rem 0;
+            color: var(--gray);
+        }
+
+        .pricing-card ul li::before {
+            content: '✓ ';
+            color: var(--success);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .pkr-note {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 6rem 2rem;
+            background: var(--light);
+        }
+
+        .testimonials-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .author-info h4 {
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .author-info p {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 6rem 2rem;
+            background: white;
+        }
+
+        .faq-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: var(--light);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 1.5rem;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+            padding: 0 1.5rem 1.5rem;
+        }
+
+        .faq-toggle {
+            font-size: 1.5rem;
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(45deg);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h3 {
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .social-links a:hover {
+            background: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero-tagline {
+                font-size: 1.1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .pricing-card.featured:hover {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.8s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">🦅 Professional AI</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <a href="https://professionalai.com" class="nav-cta">Start Free Trial</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-logo">🦅</div>
+            <h1>The World's Most Powerful AI</h1>
+            <p class="hero-tagline">Code, Create, Secure, Communicate — All in One AI Platform</p>
+            <div class="hero-buttons">
+                <a href="https://professionalai.com" class="btn btn-primary">🚀 Start Free Trial</a>
+                <a href="#features" class="btn btn-secondary">▶ Watch Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <h2 class="section-title">✨ Powerful Features</h2>
+        <p class="section-subtitle">Everything you need in one AI platform</p>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">💻</div>
+                <h3>Code in Every Language</h3>
+                <p>Generate production-ready code in 40+ programming languages with ultra-fast AI assistance.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎬</div>
+                <h3>8K Media Generation</h3>
+                <p>Create stunning 8K videos, images, and animations from text prompts in seconds.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Advanced Security</h3>
+                <p>RAT detection, red-team tools, vault encryption, and comprehensive cybersecurity suite.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3>40+ Languages</h3>
+                <p>Chat, code, and create in Urdu, Hindi, Bengali, Arabic, and 36+ more languages.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Offline Mode</h3>
+                <p>Search, login, and code without internet. Your AI assistant works anywhere, anytime.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🎙️</div>
+                <h3>Voice Over & Cloning</h3>
+                <p>Natural male/female voices and custom voice cloning for any project.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI Agents</h3>
+                <p>Automate complex tasks with intelligent AI agents and custom workflows.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">✍️</div>
+                <h3>Auto Video Editing</h3>
+                <p>AI-powered storyboarding, subtitles, transitions, and post-production.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Vault Encryption</h3>
+                <p>Military-grade encryption for your sensitive data and credentials.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Cross-Platform</h3>
+                <p>Access from Web, Android, iOS, Windows, macOS, and Linux devices.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <h3>Full-Stack Development</h3>
+                <p>Build complete applications from backend API to frontend UI with AI assistance.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Ultra-Fast Processing</h3>
+                <p>Priority speed processing on paid plans. 3x to 10x faster than free tier.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <h2 class="section-title">💰 Simple, Transparent Pricing</h2>
+        <p class="section-subtitle">Start free, upgrade when you need more power</p>
+
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>🆓 FREE</h3>
+                <div class="price">$0</div>
+                <div class="price-period">Forever free</div>
+                <ul>
+                    <li>3 code prompts/day</li>
+                    <li>50 chat messages/day</li>
+                    <li>1 video/day (5-30s)</li>
+                    <li>10 images/day</li>
+                    <li>3 animations/day</li>
+                    <li>Urdu, English, Hindi, Bengali</li>
+                    <li>Offline basic search</li>
+                </ul>
+                <a href="https://professionalai.com" class="btn btn-primary">Start Free</a>
+            </div>
+
+            <div class="pricing-card">
+                <h3>⭐ STARTER</h3>
+                <div class="price">$9.99</div>
+                <div class="price-period">per month</div>
+                <ul>
+                    <li>Everything in FREE</li>
+                    <li>10 code prompts/day</li>
+                    <li>200 chat messages/day</li>
+                    <li>5 videos/day</li>
+                    <li>50 images/day</li>
+                    <li>10 animations/day</li>
+                    <li>All 40+ languages</li>
+                </ul>
+                <a href="https://professionalai.com" class="btn btn-primary">Start Trial</a>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="popular-badge">⭐ MOST POPULAR</div>
+                <h3>💎 PRO</h3>
+                <div class="price">$19.99</div>
+                <div class="price-period">per month</div>
+                <ul>
+                    <li>Unlimited code generation</li>
+                    <li>Unlimited chat messages</li>
+                    <li>20-50 videos/day</li>
+                    <li>Unlimited images (8K)</li>
+                    <li>Unlimited animations</li>
+                    <li>Voice-over & cloning</li>
+                    <li>Auto video editing</li>
+                    <li>All 40+ languages</li>
+                    <li>Full offline mode</li>
+                    <li>AI agents</li>
+                    <li>Priority speed</li>
+                </ul>
+                <a href="https://professionalai.com" class="btn btn-primary">Start Free Trial</a>
+                <p class="pkr-note">🇵🇰 PKR 2,999/month</p>
+            </div>
+
+            <div class="pricing-card">
+                <h3>⚡ MAX</h3>
+                <div class="price">$99.99</div>
+                <div class="price-period">per month</div>
+                <ul>
+                    <li>Everything in PRO</li>
+                    <li>Unlimited videos/day</li>
+                    <li>Custom voice cloning</li>
+                    <li>RAT detection & removal</li>
+                    <li>Red-team security tools</li>
+                    <li>Penetration testing</li>
+                    <li>All security tools</li>
+                    <li>Team collaboration (10 users)</li>
+                    <li>API access</li>
+                    <li>Ultra-fast processing</li>
+                </ul>
+                <a href="https://professionalai.com" class="btn btn-primary">Start Trial</a>
+                <p class="pkr-note">🇵🇰 PKR 14,999/month</p>
+            </div>
+
+            <div class="pricing-card">
+                <h3>🏢 BUSINESS</h3>
+                <div class="price">$24.99</div>
+                <div class="price-period">per user/month</div>
+                <ul>
+                    <li>Everything in PRO</li>
+                    <li>Unlimited team members</li>
+                    <li>Admin dashboard</li>
+                    <li>Shared workspaces</li>
+                    <li>Enterprise security</li>
+                    <li>GDPR & SOC 2 compliant</li>
+                    <li>24/7 priority support</li>
+                    <li>API access (unlimited)</li>
+                    <li>SSO integration</li>
+                    <li>Custom onboarding</li>
+                </ul>
+                <a href="https://professionalai.com" class="btn btn-primary">Contact Sales</a>
+                <p class="pkr-note">🇵🇰 PKR 3,999/user/month</p>
+            </div>
+        </div>
+
+        <p style="text-align: center; margin-top: 2rem; color: var(--gray);">
+            💳 All plans include 3-day free trial • Yearly plans available (save 20%) • No credit card required for trial
+        </p>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <h2 class="section-title">💬 What Our Users Say</h2>
+        <p class="section-subtitle">Join 12,000+ satisfied users worldwide</p>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "Professional AI completely transformed my workflow. I can now build full-stack apps in hours instead of weeks. The offline mode is a game-changer for my travels!"
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">SK</div>
+                    <div class="author-info">
+                        <h4>Sarah Khan</h4>
+                        <p>Full-Stack Developer, USA</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "As a content creator, the 8K video generation and voice-over features are incredible. I've cut my production time by 80%. Best investment I've made this year!"
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">AR</div>
+                    <div class="author-info">
+                        <h4>Ahmed Raza</h4>
+                        <p>YouTuber & Content Creator, Pakistan</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "The security tools are phenomenal. Professional AI found vulnerabilities in my system that other tools missed. The RAT detection feature alone is worth the subscription."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">MP</div>
+                    <div class="author-info">
+                        <h4>Maria Patel</h4>
+                        <p>Cybersecurity Consultant, UK</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq">
+        <h2 class="section-title">❓ Frequently Asked Questions</h2>
+        <p class="section-subtitle">Everything you need to know about Professional AI</p>
+
+        <div class="faq-container">
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What is Professional AI?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Professional AI is the world's most powerful all-in-one AI platform. It combines code generation in every programming language, 8K media creation, advanced cybersecurity tools, multilingual support (40+ languages), and offline capabilities — all in one platform.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Is there a free plan available?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! Professional AI offers a generous free tier with 3 code prompts/day, 50 chat messages/day, 1 video + 10 images + 3 animations per day, and offline basic search. No credit card required.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What programming languages are supported?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Professional AI supports 40+ programming languages including Python, JavaScript, Java, C++, Rust, Go, Swift, Kotlin, PHP, Ruby, TypeScript, C#, and many more. We also support all major frameworks like React, Django, Spring, .NET, etc.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Does Professional AI work offline?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes! Professional AI offers comprehensive offline mode. You can search, login, and even write code without an internet connection. The free tier includes basic offline search, while paid plans offer full offline capabilities including coding and AI model execution.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What languages are supported for chat?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Professional AI supports 40+ languages including Urdu, Hindi, Bengali, Arabic, English, Spanish, French, German, Chinese, Russian, Turkish, Persian, and many more. You can chat, code, and create content in your native language.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>What are the payment options?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and local payment methods. For Pakistan, we offer special PKR pricing with local payment options. All paid plans come with a 3-day free trial.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Can I cancel my subscription anytime?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Yes, you can cancel your subscription at any time with no questions asked. Your access will continue until the end of your billing period. We also offer a 3-day free trial for all paid plans, so you can test before committing.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Is my data secure with Professional AI?</span>
+                    <span class="faq-toggle">+</span>
+                </div>
+                <div class="faq-answer">
+                    <p>Absolutely. We use military-grade encryption, vault encryption for sensitive data, and follow zero-knowledge architecture principles. Your data is never shared with third parties. We also offer advanced security tools like RAT detection and red-team suites for MAX plan users.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>🦅 Professional AI</h3>
+                <p>The world's most powerful all-in-one AI platform. Code, create, secure, and communicate — all in one place.</p>
+                <div class="social-links">
+                    <a href="https://facebook.com/ProfessionalAI" aria-label="Facebook">📘</a>
+                    <a href="https://instagram.com/professional.ai" aria-label="Instagram">📸</a>
+                    <a href="https://tiktok.com/@professional.ai" aria-label="TikTok">🎵</a>
+                    <a href="https://twitter.com/ProfessionalAI" aria-label="Twitter">🐦</a>
+                </div>
+            </div>
+
+            <div class="footer-section">
+                <h3>Product</h3>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="https://professionalai.com">Web App</a></li>
+                    <li><a href="#downloads">Downloads</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="https://github.com/MrProfessionalHacker313/professional-ai">GitHub</a></li>
+                    <li><a href="https://professionalai.com/docs">Documentation</a></li>
+                    <li><a href="https://professionalai.com/blog">Blog</a></li>
+                    <li><a href="https://professionalai.com/support">Support</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <ul>
+                    <li><a href="https://professionalai.com/privacy">Privacy Policy</a></li>
+                    <li><a href="https://professionalai.com/terms">Terms of Service</a></li>
+                    <li><a href="https://professionalai.com/cookies">Cookie Policy</a></li>
+                    <li><a href="https://professionalai.com/security">Security</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Download</h3>
+                <ul>
+                    <li><a href="https://play.google.com/store">Google Play</a></li>
+                    <li><a href="https://apps.apple.com">App Store</a></li>
+                    <li><a href="https://professionalai.com/download/windows">Windows .exe</a></li>
+                    <li><a href="https://professionalai.com/download/mac">macOS .dmg</a></li>
+                    <li><a href="https://professionalai.com/download/linux">Linux .AppImage</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Professional AI. All rights reserved. | Built with ❤️ by the Professional AI Team</p>
+        </div>
+    </footer>
+
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const item = question.parentElement;
+                item.classList.toggle('active');
+            });
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-fade-in');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .pricing-card, .testimonial-card').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Navbar background on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                nav.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
+    </script>
+</body>
+</html>

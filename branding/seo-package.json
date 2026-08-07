@@ -1,0 +1,65 @@
+{
+  "meta_title": "Professional AI — The World's Most Powerful AI | Code, Security, Media, 40+ Languages",
+  "meta_description": "Professional AI is the world's most powerful AI — coding in every language, cybersecurity expertise, 8K video & image generation, voice-over, offline mode, 40+ languages. Free to start.",
+  "keywords": [
+    "professional ai",
+    "best ai in the world",
+    "ai in urdu",
+    "ai in hindi",
+    "ai for pakistan",
+    "ai video maker",
+    "ai coding tool",
+    "ai security",
+    "free ai chatbot",
+    "best ai 2026"
+  ],
+  "schema": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Professional AI",
+    "operatingSystem": "Web, Android, iOS, Windows, macOS, Linux",
+    "applicationCategory": "AIApplication",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "12000"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "19.99",
+      "priceCurrency": "USD"
+    }
+  },
+  "hreflang_languages": [
+    "en",
+    "ur",
+    "hi",
+    "bn",
+    "ar",
+    "es",
+    "fr",
+    "de",
+    "zh",
+    "ru",
+    "tr",
+    "fa"
+  ],
+  "google_ads_keywords": [
+    "professional ai",
+    "professional ai in urdu",
+    "ai in hindi",
+    "best ai in pakistan",
+    "ai video maker",
+    "ai in urdu"
+  ],
+  "blog_article_titles": [
+    "What is Professional AI?",
+    "How to Build an App with AI in 10 Minutes",
+    "AI Video Generation Guide",
+    "Professional AI vs ChatGPT vs Gemini",
+    "AI for Urdu Speakers",
+    "Best AI Tools 2026",
+    "How AI Works Offline",
+    "AI Pricing: Free vs PRO vs MAX"
+  ]
+}
