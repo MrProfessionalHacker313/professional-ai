@@ -64,8 +64,10 @@ docs/
 
 # Tests
 tests/
-test_*
 *_test.py
+
+# Allow test_providers.py to be included in Docker builds
+!test_providers.py
 
 # CI/CD
 .github/
