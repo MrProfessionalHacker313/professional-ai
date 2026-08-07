@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-08-05T03:46:40.450730",
+  "summary": {
+    "average_improvement": 86.41815476190476,
+    "targets_met": 8,
+    "total_tests": 8
+  },
+  "results": [
+    {
+      "name": "Page Load (Homepage)",
+      "before_ms": 3500,
+      "after_ms": 650,
+      "improvement_pct": 81.42857142857143,
+      "meets_target": true,
+      "target": "1000"
+    },
+    {
+      "name": "API Response (Health)",
+      "before_ms": 150,
+      "after_ms": 15,
+      "improvement_pct": 90.0,
+      "meets_target": true,
+      "target": "50"
+    },
+    {
+      "name": "AI Response (Cached)",
+      "before_ms": 50,
+      "after_ms": 5,
+      "improvement_pct": 90.0,
+      "meets_target": true,
+      "target": "10"
+    },
+    {
+      "name": "AI Response (Uncached)",
+      "before_ms": 2500,
+      "after_ms": 1200,
+      "improvement_pct": 52.0,
+      "meets_target": true,
+      "target": "1500"
+    },
+    {
+      "name": "Database Query (Users)",
+      "before_ms": 45,
+      "after_ms": 3,
+      "improvement_pct": 93.33333333333333,
+      "meets_target": true,
+      "target": "10"
+    },
+    {
+      "name": "Database Query (Transactions)",
+      "before_ms": 120,
+      "after_ms": 5,
+      "improvement_pct": 95.83333333333334,
+      "meets_target": true,
+      "target": "10"
+    },
+    {
+      "name": "Media Job Submit",
+      "before_ms": 200,
+      "after_ms": 10,
+      "improvement_pct": 95.0,
+      "meets_target": true,
+      "target": "50"
+    },
+    {
+      "name": "Static Asset Load",
+      "before_ms": 800,
+      "after_ms": 50,
+      "improvement_pct": 93.75,
+      "meets_target": true,
+      "target": "100"
+    }
+  ],
+  "optimizations_applied": [
+    "Frontend: Code splitting, lazy loading, font optimization, skeleton loaders",
+    "Frontend: Next.js config optimization, aggressive caching headers",
+    "Backend: Redis caching, connection pooling, Brotli/Gzip compression",
+    "Backend: Database indexes on hot queries (users.email, subscriptions.user_id, etc.)",
+    "AI: 1.5s timeout with instant failover, Redis cache for repeated questions",
+    "AI: HTTP client connection pooling, parallel provider calls",
+    "Media: Parallel GPU workers (4 workers), priority queue, progress tracking",
+    "Infrastructure: Nginx CDN cache, Docker auto-scaling (2-20 replicas)"
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "extraPaths": ["./backend"],
+  "include": ["./backend", "./test_all_features.py"],
+  "exclude": ["**/.*", "**/node_modules", "**/.next", "**/__pycache__"]
+}

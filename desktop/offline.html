@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Professional AI Desktop</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: #e9f2ff;
+        background: linear-gradient(135deg, #0b1220, #151b2f);
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .card {
+        width: min(90vw, 520px);
+        border-radius: 18px;
+        background: rgba(18, 25, 42, 0.86);
+        border: 1px solid #273451;
+        padding: 26px;
+        box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 28px;
+      }
+      p {
+        margin: 0;
+        color: #a6b8dc;
+        line-height: 1.55;
+      }
+      .badge {
+        margin-top: 14px;
+        display: inline-block;
+        border-radius: 20px;
+        border: 1px solid #2f4365;
+        background: #16243f;
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1 id="title">Launching Professional AI Desktop...</h1>
+      <p id="desc">Preparing secure desktop workspace with offline and cloud capabilities.</p>
+      <div class="badge" id="note">Desktop Mode</div>
+    </div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get("mode");
+      if (mode === "offline") {
+        document.getElementById("title").textContent = "Web UI not reachable";
+        document.getElementById("desc").textContent = "You can still use Ctrl+Shift+P for local offline Ask Pro AI via Ollama. Start backend/frontend services to restore full interface.";
+        document.getElementById("note").textContent = "Offline Fallback Active";
+      }
+    </script>
+  </body>
+</html>

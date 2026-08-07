@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Professional AI icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a4d68"/>
+      <stop offset="1" stop-color="#088395"/>
+    </linearGradient>
+    <linearGradient id="fg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05bfdb"/>
+      <stop offset="1" stop-color="#00ffca"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg)"/>
+  <path d="M332 250h222c166 0 266 102 266 254S720 758 554 758H332V250zm216 398c98 0 160-56 160-144s-62-144-160-144h-96v288h96z" fill="#ecfeff"/>
+  <circle cx="758" cy="758" r="110" fill="url(#fg)"/>
+  <path d="M724 758h68M758 724v68" stroke="#00343b" stroke-width="28" stroke-linecap="round"/>
+</svg>

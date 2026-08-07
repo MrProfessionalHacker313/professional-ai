@@ -1,0 +1,77 @@
+[
+  {
+    "id": "kb-trans-common",
+    "title": "Common Translations (EN → UR/HI/AR/BN)",
+    "category": "translations",
+    "tags": ["translation", "urdu", "hindi", "arabic", "bengali"],
+    "content": "Common phrase translations across Professional AI's core languages. These work fully offline for instant translation.",
+    "snippet": "English:      Hello, how are you?\nUrdu:         السلام علیکم، آپ کیسے ہیں؟\nHindi:        नमस्ते, आप कैसे हैं?\nArabic:       مرحباً، كيف حالك؟\nBengali:      হ্যালো, আপনি কেমন আছেন?\n\nEnglish:      Thank you\nUrdu:         شکریہ\nHindi:        धन्यवाद\nArabic:       شكراً\nBengali:      ধন্যবাদ\n\nEnglish:      Good morning\nUrdu:         صبح بخیر\nHindi:        सुप्रभात\nArabic:       صباح الخير\nBengali:      শুভ সকাল",
+    "answers": [
+      "translate hello urdu",
+      "how to say thank you in arabic",
+      "good morning in hindi",
+      "urdu translations",
+      "common phrases bengali"
+    ]
+  },
+  {
+    "id": "kb-trans-code",
+    "title": "Programming Terms Translations",
+    "category": "translations",
+    "tags": ["translation", "code", "programming", "urdu", "hindi"],
+    "content": "Programming terminology translated for non-English speakers learning to code offline.",
+    "snippet": "English:      Code\nUrdu:         کوڈ\nHindi:        कोड\nArabic:       كود\nBengali:      কোড\n\nEnglish:      Function\nUrdu:         فنکشن\nHindi:        फ़ंक्शन\nArabic:       دالة\nBengali:      ফাংশন\n\nEnglish:      Variable\nUrdu:         متغیر\nHindi:        चर\nArabic:       متغير\nBengali:      ভেরিয়েবল\n\nEnglish:      Bug / Error\nUrdu:         بگ / خرابی\nHindi:        बग / एरर\nArabic:       خطأ\nBengali:      বাগ / ত্রুটি\n\nEnglish:      Security\nUrdu:         سیکیورٹی\nHindi:        सुरक्षा\nArabic:       أمن\nBengali:      নিরাপত্তা",
+    "answers": [
+      "code in urdu",
+      "programming terms in hindi",
+      "function in arabic",
+      "security in urdu",
+      "variable in bengali"
+    ]
+  },
+  {
+    "id": "kb-trans-ai",
+    "title": "AI Terms Translations",
+    "category": "translations",
+    "tags": ["translation", "ai", "artificial intelligence", "urdu", "hindi", "arabic"],
+    "content": "AI-related terminology in Urdu, Hindi, Arabic and Bengali for local-language AI education.",
+    "snippet": "English:      Artificial Intelligence\nUrdu:         مصنوعی ذہانت\nHindi:        कृत्रिम बुद्धिमत्ता\nArabic:       الذكاء الاصطناعي\nBengali:      কৃত্রিম বুদ্ধিমত্তা\n\nEnglish:      Machine Learning\nUrdu:         مشین لرننگ\nHindi:        मशीन लर्निंग\nArabic:       تعلم الآلة\nBengali:      মেশিন লার্নিং\n\nEnglish:      Chatbot\nUrdu:         چیٹ بوٹ\nHindi:        चैटबॉट\nArabic:       روبوت المحادثة\nBengali:      চ্যাটবট\n\nEnglish:      Data\nUrdu:         ڈیٹا\nHindi:        डेटा\nArabic:       بيانات\nBengali:      ডেটা",
+    "answers": [
+      "artificial intelligence in urdu",
+      "machine learning in hindi",
+      "ai terms arabic",
+      "chatbot in urdu",
+      "data in bengali"
+    ]
+  },
+  {
+    "id": "kb-trans-daily",
+    "title": "Daily Conversation Translations",
+    "category": "translations",
+    "tags": ["translation", "daily", "conversation", "urdu", "hindi"],
+    "content": "Daily conversation phrases in Urdu, Hindi, Arabic, Bengali for common situations.",
+    "snippet": "English:      Welcome\nUrdu:         خوش آمدید\nHindi:        स्वागत है\nArabic:       أهلاً وسهلاً\nBengali:      স্বাগতম\n\nEnglish:      Please\nUrdu:         براہ کرم\nHindi:        कृपया\nArabic:       من فضلك\nBengali:      অনুগ্রহ করে\n\nEnglish:      Sorry / Excuse me\nUrdu:         معذرت\nHindi:        माफ़ कीजिए\nArabic:       عفواً\nBengali:      দুঃখিত\n\nEnglish:      How much is this?\nUrdu:         اس کی قیمت کتنی ہے؟\nHindi:        यह कितने का है?\nArabic:       كم سعر هذا؟\nBengali:      এটার দাম কত?\n\nEnglish:      I don't understand\nUrdu:         مجھے سمجھ نہیں آئی\nHindi:        मुझे समझ नहीं आया\nArabic:       لا أفهم\nBengali:      আমি বুঝতে পারছি না",
+    "answers": [
+      "welcome in urdu",
+      "please in arabic",
+      "sorry in hindi",
+      "how much in bengali",
+      "i don't understand urdu"
+    ]
+  },
+  {
+    "id": "kb-trans-tech",
+    "title": "Tech Terms Translations",
+    "category": "translations",
+    "tags": ["translation", "tech", "internet", "computer", "urdu"],
+    "content": "Technology terms translated into Urdu, Hindi, Arabic, and Bengali for digital literacy.",
+    "snippet": "English:      Internet\nUrdu:         انٹرنیٹ\nHindi:        इंटरनेट\nArabic:       إنترنت\nBengali:      ইন্টারনেট\n\nEnglish:      Computer\nUrdu:         کمپیوٹر\nHindi:        कंप्यूटर\nArabic:       حاسوب\nBengali:      কম্পিউটার\n\nEnglish:      Mobile / Phone\nUrdu:         موبائل / فون\nHindi:        मोबाइल / फ़ोन\nArabic:       هاتف محمول\nBengali:      মোবাইল / ফোন\n\nEnglish:      Application / App\nUrdu:         ایپلیکیشن / ایپ\nHindi:        एप्लिकेशन / ऐप\nArabic:       تطبيق\nBengali:      অ্যাপ্লিকেশন / অ্যাপ\n\nEnglish:      Password\nUrdu:         پاس ورڈ\nHindi:        पासवर्ड\nArabic:       كلمة المرور\nBengali:      পাসওয়ার্ড",
+    "answers": [
+      "internet in urdu",
+      "computer in arabic",
+      "password in hindi",
+      "app in urdu",
+      "mobile in bengali"
+    ]
+  }
+]

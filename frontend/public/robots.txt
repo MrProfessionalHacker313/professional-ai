@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /owner/
+Disallow: /_next/
+Disallow: /private/
+
+Sitemap: https://professionalai.com/sitemap.xml

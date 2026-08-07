@@ -1,0 +1,79 @@
+# Dependencies
+**/node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.pnp.*
+.yarn/
+.yarnrc.yml
+package-lock.json
+yarn.lock
+
+# Build outputs
+out/
+.next/
+dist/
+build/
+coverage/
+*.local
+!frontend/out/
+!frontend/out/**
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Data (not needed for build)
+database/
+data/
+logs/
+uploads/
+media_output/
+media_temp/
+ollama_data/
+postgres_data/
+redis_data/
+backend_logs/
+backend_uploads/
+
+# Env files (secrets)
+.env
+.env.*
+!.env.example
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Tests
+tests/
+test_*
+*_test.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Media worker (separate service)
+media-worker/
+
+# Desktop app
+desktop/

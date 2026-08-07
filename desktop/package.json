@@ -1,0 +1,77 @@
+{
+  "name": "professional-ai-desktop",
+  "version": "1.0.0",
+  "description": "Professional AI Desktop App for Windows, macOS, and Linux",
+  "main": "main.js",
+  "author": "Professional AI",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.professionalai.desktop",
+    "productName": "Professional AI",
+    "copyright": "Copyright © 2026 Professional AI",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "buildResources"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "quick-ask.html",
+      "offline.html",
+      "buildResources/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://downloads.professionalai.com/desktop"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "buildResources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Professional AI"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.productivity",
+      "icon": "buildResources/icon.png"
+    },
+    "dmg": {
+      "title": "Professional AI Installer"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Development",
+      "icon": "buildResources/icon.png"
+    }
+  }
+}

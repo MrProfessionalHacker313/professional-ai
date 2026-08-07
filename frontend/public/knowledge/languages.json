@@ -1,0 +1,212 @@
+[
+  {
+    "id": "kb-lang-all",
+    "title": "Programming Languages Overview",
+    "category": "languages",
+    "tags": ["languages", "python", "javascript", "java", "c++", "go", "rust", "comparison"],
+    "content": "Programming language overview: Python (data/AI, easy), JavaScript/TypeScript (web), Java (enterprise/Android), C++ (systems/games), C# (.NET/Unity), Go (cloud/backend), Rust (systems/safe), Swift (iOS), Kotlin (Android), PHP (web), Ruby (web), SQL (databases).",
+    "snippet": "Python    - Data science, AI, scripting\nJavaScript - Web, Node.js\nTypeScript - Typed JavaScript\nJava      - Enterprise, Android\nC++       - Games, systems, performance\nGo        - Cloud, backend, DevOps\nRust      - Safe systems programming\nSwift     - iOS/macOS\nKotlin    - Android modern\nC#        - .NET, Unity games",
+    "answers": [
+      "best programming language",
+      "programming languages comparison",
+      "what language should i learn",
+      "most popular programming languages",
+      "python vs javascript"
+    ]
+  },
+  {
+    "id": "kb-lang-cpp",
+    "title": "C++ Basics",
+    "category": "languages",
+    "tags": ["c++", "cpp", "pointers", "memory", "stl"],
+    "content": "C++: compiled, performance-critical. Key concepts: pointers/references, RAII (resource acquisition is initialization), STL containers (vector, map), smart pointers (unique_ptr, shared_ptr), templates, classes, memory management (new/delete).",
+    "snippet": "#include <iostream>\n#include <vector>\n#include <memory>\n\nint main() {\n    std::vector<int> nums = {1, 2, 3};\n    auto ptr = std::make_unique<int>(42);\n    for (int n : nums) std::cout << n << ' ';\n    return 0;\n}",
+    "answers": [
+      "c++ basics",
+      "c++ pointers explained",
+      "c++ smart pointers",
+      "stl containers",
+      "c++ vs rust"
+    ]
+  },
+  {
+    "id": "kb-lang-java",
+    "title": "Java Basics",
+    "category": "languages",
+    "tags": ["java", "jvm", "spring", "maven", "oop"],
+    "content": "Java: JVM-based, compiled to bytecode. Concepts: classes, interfaces, generics, exceptions, streams, collections (List, Map, Set), Maven/Gradle builds, Spring framework for enterprise. Write once, run anywhere.",
+    "snippet": "public class Hello {\n    public static void main(String[] args) {\n        List<String> names = new ArrayList<>();\n        names.add(\"Alice\");\n        names.stream().forEach(System.out::println);\n    }\n}",
+    "answers": [
+      "java basics",
+      "java vs python",
+      "spring boot",
+      "java collections",
+      "jvm explained"
+    ]
+  },
+  {
+    "id": "kb-lang-go",
+    "title": "Go (Golang) Basics",
+    "category": "languages",
+    "tags": ["go", "golang", "goroutines", "channels", "backend"],
+    "content": "Go: compiled, simple, concurrent. Goroutines for concurrency, channels for communication, defer for cleanup, interfaces for polymorphism, structs for data. Built-in http server, no framework needed. Great for cloud/backends.",
+    "snippet": "package main\n\nimport (\n    \"fmt\"\n    \"net/http\"\n)\n\nfunc main() {\n    http.HandleFunc(\"/\", func(w http.ResponseWriter, r *http.Request) {\n        fmt.Fprintf(w, \"Hello, Go!\")\n    })\n    http.ListenAndServe(\":8080\", nil)\n}\n\ngo func() {\n    fmt.Println(\"goroutine!\")\n}()",
+    "answers": [
+      "go lang basics",
+      "golang goroutines",
+      "go channels",
+      "go vs node",
+      "go web server"
+    ]
+  },
+  {
+    "id": "kb-lang-rust",
+    "title": "Rust Basics",
+    "category": "languages",
+    "tags": ["rust", "ownership", "borrowing", "cargo", "safe"],
+    "content": "Rust: memory-safe systems language. Ownership rules prevent data races. Borrowing (&) and lifetimes. Cargo package manager. Enums with pattern matching, Options and Results for error handling. No garbage collector.",
+    "snippet": "fn main() {\n    let s = String::from(\"hello\");\n    let len = calculate_length(&s);  // borrow\n    println!(\"{} {}\", s, len);\n}\n\nfn calculate_length(s: &String) -> usize {\n    s.len()\n}",
+    "answers": [
+      "rust basics",
+      "rust ownership",
+      "rust borrowing",
+      "rust vs c++",
+      "cargo commands"
+    ]
+  },
+  {
+    "id": "kb-lang-kotlin",
+    "title": "Kotlin Basics",
+    "category": "languages",
+    "tags": ["kotlin", "android", "coroutines", "null safety"],
+    "content": "Kotlin: modern JVM language, official for Android. Null safety with ?, data classes, coroutines for async, extension functions, smart casts. Interoperates with Java.",
+    "snippet": "data class User(val name: String, val age: Int? = null)\n\nfun main() {\n    val user = User(\"Alice\")\n    println(user.name)\n    \n    // Coroutine\n    GlobalScope.launch {\n        delay(1000)\n        println(\"Async!\")\n    }\n}",
+    "answers": [
+      "kotlin basics",
+      "kotlin vs java",
+      "android development",
+      "kotlin coroutines",
+      "kotlin null safety"
+    ]
+  },
+  {
+    "id": "kb-lang-csharp",
+    "title": "C# Basics",
+    "category": "languages",
+    "tags": ["c#", "dotnet", "asp.net", "unity", "linq"],
+    "content": "C#: .NET language for Windows, web (ASP.NET Core), Unity games. Properties, LINQ queries, async/await, delegates/lambdas, generics, garbage collection. NuGet for packages.",
+    "snippet": "using System;\nusing System.Linq;\n\nvar numbers = new int[] { 1, 2, 3, 4 };\nvar evens = numbers.Where(n => n % 2 == 0);\n\nforeach (var n in evens) {\n    Console.WriteLine(n);\n}",
+    "answers": [
+      "c# basics",
+      "c# vs java",
+      "asp.net core",
+      "linq queries",
+      "unity c# scripts"
+    ]
+  },
+  {
+    "id": "kb-lang-php",
+    "title": "PHP Basics",
+    "category": "languages",
+    "tags": ["php", "laravel", "wordpress", "web"],
+    "content": "PHP: server-side scripting for web. Popular frameworks: Laravel, Symfony. WordPress built on PHP. Variables with $, associative arrays, sessions, PDO for databases. Modern PHP 8+ with typed properties.",
+    "snippet": "<?php\n$name = 'World';\necho \"Hello, $name!\";\n\n// Associative array\n$user = ['name' => 'Alice', 'age' => 30];\necho $user['name'];\n\n// PDO\n$pdo = new PDO('mysql:host=localhost;dbname=test', 'user', 'pass');\n$stmt = $pdo->prepare('SELECT * FROM users WHERE id = ?');\n$stmt->execute([1]);",
+    "answers": [
+      "php basics",
+      "php vs python",
+      "laravel framework",
+      "php mysql",
+      "wordpress development"
+    ]
+  },
+  {
+    "id": "kb-lang-swift",
+    "title": "Swift Basics",
+    "category": "languages",
+    "tags": ["swift", "ios", "apple", "xcode", "mobile"],
+    "content": "Swift: Apple's language for iOS/macOS/watchOS. Optionals, structs vs classes, closures, protocol-oriented programming, SwiftUI framework. ARC memory management. Playgrounds for learning.",
+    "snippet": "import SwiftUI\n\nstruct ContentView: View {\n    @State private var count = 0\n    \n    var body: some View {\n        VStack {\n            Text(\"Count: \\(count)\")\n            Button(\"Increment\") { count += 1 }\n        }\n    }\n}\n\nlet optionalName: String? = \"Alice\"\nprint(optionalName ?? \"Unknown\")",
+    "answers": [
+      "swift basics",
+      "ios development",
+      "swiftui tutorial",
+      "swift vs kotlin",
+      "xcode"
+    ]
+  },
+  {
+    "id": "kb-lang-ruby",
+    "title": "Ruby & Rails Basics",
+    "category": "languages",
+    "tags": ["ruby", "rails", "ruby on rails", "web"],
+    "content": "Ruby: elegant, developer-friendly language. Ruby on Rails: full-stack framework with conventions. Blocks/procs/lambdas, symbols, metaprogramming, gems for packages. ActiveRecord ORM.",
+    "snippet": "class User < ApplicationRecord\n  validates :email, presence: true\n  has_many :posts\nend\n\n# In controller\nclass UsersController < ApplicationController\n  def index\n    @users = User.all\n  end\n\n  def create\n    User.create(user_params)\n  end\nend",
+    "answers": [
+      "ruby basics",
+      "ruby on rails",
+      "rails vs django",
+      "ruby blocks",
+      "activerecord"
+    ]
+  },
+  {
+    "id": "kb-lang-html-css",
+    "title": "HTML & CSS Essentials",
+    "category": "languages",
+    "tags": ["html", "css", "web", "frontend", "semantic"],
+    "content": "HTML defines structure: headers, paragraphs, links, forms, semantic elements (header, nav, main, section, article, footer). CSS styles: selectors, box model, flexbox, grid, responsive design, animations.",
+    "snippet": "<html>\n<head>\n  <style>\n    .container {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 16px;\n    }\n    @media (max-width: 768px) {\n      .container { grid-template-columns: 1fr; }\n    }\n  </style>\n</head>\n<body>\n  <header><nav>...</nav></header>\n  <main class=\"container\">...</main>\n  <footer>...</footer>\n</body>\n</html>",
+    "answers": [
+      "html basics",
+      "css grid",
+      "responsive design",
+      "semantic html",
+      "html form elements"
+    ]
+  },
+  {
+    "id": "kb-lang-shell",
+    "title": "Shell Scripting (Bash)",
+    "category": "languages",
+    "tags": ["bash", "shell", "linux", "terminal", "scripting"],
+    "content": "Bash scripting: variables, conditionals (if/then), loops (for, while), functions, pipes, redirection, command substitution, exit codes. chmod +x to make executable. Shebang #!/bin/bash.",
+    "snippet": "#!/bin/bash\n\nNAME=\"World\"\necho \"Hello, $NAME!\"\n\nfor file in *.txt; do\n    echo \"Processing $file\"\ndone\n\nif [ -f \"important.txt\" ]; then\n    echo \"File exists\"\nelse\n    echo \"Missing\"\nfi\n\n# Function\nfunction greet() {\n    echo \"Hi $1\"\n}\ngreet \"Alice\"",
+    "answers": [
+      "bash scripting",
+      "shell commands",
+      "linux terminal",
+      "bash if else",
+      "bash for loop"
+    ]
+  },
+  {
+    "id": "kb-lang-ai",
+    "title": "AI Development Concepts",
+    "category": "languages",
+    "tags": ["ai", "machine learning", "deep learning", "neural networks", "llm"],
+    "content": "AI/ML: supervised vs unsupervised learning, neural networks (layers, neurons, activation), LLMs (transformer architecture, attention), embeddings, fine-tuning, RAG (retrieval augmented generation), prompt engineering. Key tools: PyTorch, TensorFlow, Transformers.",
+    "snippet": "Machine Learning types:\n- Supervised: labeled data\n- Unsupervised: patterns\n- Reinforcement: rewards\n\nLLM stack:\n- Base model (pre-trained)\n- Fine-tuning (domain)\n- RAG (knowledge)\n- Prompt engineering\n\nEmbeddings: text → vectors",
+    "answers": [
+      "machine learning basics",
+      "what is a neural network",
+      "how do llms work",
+      "rag explained",
+      "deep learning vs machine learning"
+    ]
+  },
+  {
+    "id": "kb-lang-database",
+    "title": "Database Concepts",
+    "category": "languages",
+    "tags": ["database", "sql", "nosql", "postgres", "mongodb", "indexes"],
+    "content": "Databases: SQL (PostgreSQL, MySQL) relational with ACID transactions. NoSQL (MongoDB, Redis) for flexibility/scale. Indexes speed lookups. Normalization reduces redundancy. Transactions ensure consistency.",
+    "snippet": "-- Indexes\nCREATE INDEX idx_users_email ON users(email);\n\n-- Transaction\nBEGIN;\nUPDATE accounts SET balance = balance - 100 WHERE id = 1;\nUPDATE accounts SET balance = balance + 100 WHERE id = 2;\nCOMMIT;\n\n-- PostgreSQL vs MongoDB\nSQL:    structured, ACID\nMongoDB: flexible documents",
+    "answers": [
+      "sql vs nosql",
+      "database indexes",
+      "postgresql basics",
+      "mongodb vs postgres",
+      "acid transactions"
+    ]
+  }
+]

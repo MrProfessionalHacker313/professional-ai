@@ -1,0 +1,306 @@
+[
+  {
+    "id": "kb-python-variables",
+    "title": "Python Variables & Data Types",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "variables", "data types", "int", "str", "list", "dict"],
+    "content": "Python supports dynamic typing. Common types: int, float, str, bool, list, tuple, dict, set. Variables are created on assignment: x = 5. Type conversion: int('5'), str(5). Strings are immutable, lists are mutable. Dictionaries store key-value pairs.",
+    "snippet": "x = 5\nname = 'Python'\nitems = [1, 2, 3]\ndata = {'key': 'value'}\nprint(type(x)) # <class 'int'>",
+    "answers": [
+      "what is a variable in python",
+      "python data types",
+      "how to declare variables in python",
+      "python list vs tuple",
+      "python dictionary example"
+    ]
+  },
+  {
+    "id": "kb-python-functions",
+    "title": "Python Functions & Scope",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "functions", "def", "scope", "lambda", "args", "kwargs"],
+    "content": "Define functions with def keyword. Default parameters, *args for variable positional args, **kwargs for keyword args. Lambda for anonymous functions. Variables defined inside functions are local scope. Use global keyword or return values to access outside.",
+    "snippet": "def greet(name='World'):\n    return f'Hello, {name}!'\n\nadd = lambda a, b: a + b\nprint(greet())  # Hello, World!\nprint(add(2, 3))  # 5",
+    "answers": [
+      "how to define a function in python",
+      "python lambda function",
+      "python *args **kwargs",
+      "python function scope",
+      "python default parameters"
+    ]
+  },
+  {
+    "id": "kb-python-loops",
+    "title": "Python Loops & Iteration",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "loops", "for", "while", "range", "iteration"],
+    "content": "for loops iterate over sequences. range(start, stop, step) generates numbers. while loops repeat while condition is true. Use break to exit, continue to skip, else clause runs when loop completes normally.",
+    "snippet": "for i in range(5):\n    print(i)\n\nitems = ['a', 'b', 'c']\nfor idx, item in enumerate(items):\n    print(idx, item)\n\nwhile True:\n    x = input()\n    if x == 'quit':\n        break",
+    "answers": [
+      "python for loop example",
+      "python while loop",
+      "python range",
+      "how to break out of loop in python",
+      "python enumerate"
+    ]
+  },
+  {
+    "id": "kb-python-oop",
+    "title": "Python OOP & Classes",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "oop", "class", "object", "inheritance", "__init__"],
+    "content": "Python OOP: classes created with class keyword. __init__ is constructor. self refers to instance. Inheritance via class Child(Parent). Method overriding, super() calls parent. Properties with @property decorator.",
+    "snippet": "class Animal:\n    def __init__(self, name):\n        self.name = name\n    def speak(self):\n        return '...'\n\nclass Dog(Animal):\n    def speak(self):\n        return f'{self.name} says Woof!'\n\ndog = Dog('Rex')\nprint(dog.speak())",
+    "answers": [
+      "python class example",
+      "python inheritance",
+      "python __init__",
+      "what is self in python",
+      "python oop tutorial"
+    ]
+  },
+  {
+    "id": "kb-python-errors",
+    "title": "Python Error Handling",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "errors", "exceptions", "try", "except", "raise"],
+    "content": "Try/except blocks handle exceptions. except catches specific exception types. finally runs always. else runs if no error. raise to throw manually. Common exceptions: ValueError, TypeError, KeyError, IndexError, FileNotFoundError.",
+    "snippet": "try:\n    result = 10 / int('0')\nexcept ZeroDivisionError:\n    print('Cannot divide by zero')\nexcept (ValueError, TypeError) as e:\n    print(f'Invalid input: {e}')\nelse:\n    print('Success')\nfinally:\n    print('Cleanup')",
+    "answers": [
+      "python try except",
+      "python exception handling",
+      "python raise exception",
+      "python finally clause",
+      "common python errors"
+    ]
+  },
+  {
+    "id": "kb-js-basics",
+    "title": "JavaScript Basics",
+    "category": "coding",
+    "language": "javascript",
+    "tags": ["javascript", "js", "variables", "let", "const", "var"],
+    "content": "JavaScript: let for mutable variables, const for constants, var is legacy. Primitive types: string, number, boolean, null, undefined, symbol, bigint. Objects are key-value pairs. Functions are first-class citizens.",
+    "snippet": "const name = 'JS';\nlet count = 0;\ncount++;\nconst obj = { key: 'value' };\nconst add = (a, b) => a + b;\nconsole.log(add(1, 2)); // 3",
+    "answers": [
+      "javascript basics",
+      "let vs const vs var",
+      "javascript arrow functions",
+      "javascript variables",
+      "js object example"
+    ]
+  },
+  {
+    "id": "kb-js-promises",
+    "title": "JavaScript Promises & Async/Await",
+    "category": "coding",
+    "language": "javascript",
+    "tags": ["javascript", "promises", "async", "await", "fetch"],
+    "content": "Promises represent async operations. States: pending, fulfilled, rejected. async/await is syntactic sugar. try/catch handles rejection. Promise.all for parallel. fetch() returns a promise. Event loop handles async.",
+    "snippet": "async function fetchData() {\n  try {\n    const res = await fetch('/api/data');\n    const data = await res.json();\n    return data;\n  } catch (err) {\n    console.error('Failed:', err);\n  }\n}\n\nPromise.all([p1, p2]).then(console.log);",
+    "answers": [
+      "javascript promises",
+      "async await javascript",
+      "js fetch example",
+      "promise.all example",
+      "javascript event loop"
+    ]
+  },
+  {
+    "id": "kb-js-array-methods",
+    "title": "JavaScript Array Methods",
+    "category": "coding",
+    "language": "javascript",
+    "tags": ["javascript", "array", "map", "filter", "reduce", "forEach"],
+    "content": "Modern JS array methods: map transforms, filter selects, reduce aggregates, forEach iterates, find locates first match, some/every test conditions, sort orders, includes checks existence.",
+    "snippet": "const nums = [1, 2, 3, 4, 5];\nconst doubled = nums.map(n => n * 2);\nconst evens = nums.filter(n => n % 2 === 0);\nconst sum = nums.reduce((acc, n) => acc + n, 0);\nconsole.log(doubled, evens, sum);",
+    "answers": [
+      "javascript map filter reduce",
+      "js array methods",
+      "spread operator array",
+      "js forEach vs map",
+      "javascript reduce example"
+    ]
+  },
+  {
+    "id": "kb-react-hooks",
+    "title": "React Hooks",
+    "category": "coding",
+    "language": "javascript",
+    "tags": ["react", "hooks", "useState", "useEffect", "useContext", "useRef"],
+    "content": "React hooks: useState for state, useEffect for side effects, useContext for context, useRef for mutable refs, useMemo/useCallback for performance. Rules: call at top level, only in functional components.",
+    "snippet": "import { useState, useEffect } from 'react';\n\nfunction Counter() {\n  const [count, setCount] = useState(0);\n  useEffect(() => {\n    document.title = `Count: ${count}`;\n  }, [count]);\n  return <button onClick={() => setCount(c => c + 1)}>{count}</button>;\n}",
+    "answers": [
+      "react hooks",
+      "useState example",
+      "useEffect example",
+      "react custom hooks",
+      "when does useEffect run"
+    ]
+  },
+  {
+    "id": "kb-sql-basics",
+    "title": "SQL Basics",
+    "category": "coding",
+    "language": "sql",
+    "tags": ["sql", "database", "select", "insert", "update", "join"],
+    "content": "SQL: SELECT retrieves, INSERT adds, UPDATE modifies, DELETE removes. WHERE filters, JOIN combines tables, GROUP BY aggregates, ORDER BY sorts. LIMIT restricts rows. Primary keys uniquely identify rows.",
+    "snippet": "SELECT u.name, o.total\nFROM users u\nJOIN orders o ON u.id = o.user_id\nWHERE o.status = 'paid'\nGROUP BY u.name, o.total\nORDER BY o.total DESC\nLIMIT 10;",
+    "answers": [
+      "sql basics",
+      "sql join tutorial",
+      "sql select query",
+      "sql insert example",
+      "sql group by"
+    ]
+  },
+  {
+    "id": "kb-sql-joins",
+    "title": "SQL JOINs Explained",
+    "category": "coding",
+    "language": "sql",
+    "tags": ["sql", "join", "inner join", "left join", "right join"],
+    "content": "INNER JOIN returns matching rows in both tables. LEFT JOIN returns all left table rows + matches from right. RIGHT JOIN is opposite. FULL OUTER JOIN returns all rows from both. CROSS JOIN is Cartesian product.",
+    "snippet": "-- Inner join\nSELECT * FROM a INNER JOIN b ON a.id = b.a_id;\n-- Left join\nSELECT * FROM a LEFT JOIN b ON a.id = b.a_id;\n-- Left with filter\nSELECT * FROM a LEFT JOIN b ON a.id = b.a_id WHERE b.a_id IS NULL;",
+    "answers": [
+      "sql inner join vs left join",
+      "sql left join example",
+      "difference between joins",
+      "sql join multiple tables",
+      "full outer join"
+    ]
+  },
+  {
+    "id": "kb-nodejs-basics",
+    "title": "Node.js Basics",
+    "category": "coding",
+    "language": "javascript",
+    "tags": ["nodejs", "node", "express", "modules", "npm"],
+    "content": "Node.js runs JS on server. CommonJS require() or ESM import. Key modules: http, fs, path, crypto. Express is popular web framework. npm manages packages. NODE_ENV controls environment.",
+    "snippet": "const express = require('express');\nconst app = express();\n\napp.use(express.json());\n\napp.get('/api/health', (req, res) => {\n  res.json({ status: 'ok' });\n});\n\napp.listen(3000, () => console.log('Server running'));",
+    "answers": [
+      "node js basics",
+      "express hello world",
+      "node require vs import",
+      "npm install",
+      "node server example"
+    ]
+  },
+  {
+    "id": "kb-docker-basics",
+    "title": "Docker Basics",
+    "category": "coding",
+    "language": "docker",
+    "tags": ["docker", "container", "dockerfile", "docker-compose"],
+    "content": "Docker containers package apps with dependencies. Dockerfile defines build. docker build creates image, docker run starts container. docker-compose runs multi-container apps. Images are read-only templates, containers are runnable instances.",
+    "snippet": "# Dockerfile\nFROM node:20-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --omit=dev\nCOPY . .\nEXPOSE 3000\nCMD [\"node\", \"server.js\"]",
+    "answers": [
+      "docker basics",
+      "dockerfile example",
+      "docker compose example",
+      "docker vs container",
+      "docker build run"
+    ]
+  },
+  {
+    "id": "kb-git-basics",
+    "title": "Git Essentials",
+    "category": "coding",
+    "language": "git",
+    "tags": ["git", "github", "commit", "branch", "merge", "clone"],
+    "content": "Git tracks changes. git init starts repo, git add stages, git commit saves snapshot, git push uploads, git pull downloads. Branches isolate work. Merge combines. Rebase rewrites history. Stash saves uncommitted work.",
+    "snippet": "git init\ngit add .\ngit commit -m 'Initial commit'\ngit branch feature\n git checkout feature\ngit push origin main\ngit pull\ngit stash",
+    "answers": [
+      "git commands",
+      "git commit example",
+      "git branch merge",
+      "git undo commit",
+      "git reset vs revert"
+    ]
+  },
+  {
+    "id": "kb-css-flexbox",
+    "title": "CSS Flexbox",
+    "category": "coding",
+    "language": "css",
+    "tags": ["css", "flexbox", "layout", "flex", "responsive"],
+    "content": "Flexbox lays out items in one direction. display:flex on container. flex-direction row/column. justify-content aligns main axis, align-items cross axis. flex-grow/flex-shrink control sizing. gap for spacing.",
+    "snippet": ".container {\n  display: flex;\n  flex-direction: row;\n  justify-content: center;\n  align-items: center;\n  gap: 16px;\n}\n.item { flex: 1; }",
+    "answers": [
+      "css flexbox",
+      "flex center div",
+      "flex-grow shrink basis",
+      "css flex direction",
+      "justify-content align-items"
+    ]
+  },
+  {
+    "id": "kb-python-flask",
+    "title": "Python Flask API",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "flask", "api", "rest", "route"],
+    "content": "Flask creates web apps/APIs. @app.route decorators bind URLs to functions. Methods: GET, POST, PUT, DELETE. request.json parses body. jsonify returns JSON. Blueprints organize routes. Flask-CORS handles cross-origin.",
+    "snippet": "from flask import Flask, request, jsonify\n\napp = Flask(__name__)\n\n@app.route('/api/items', methods=['GET'])\ndef get_items():\n    return jsonify({'items': []})\n\n@app.route('/api/items', methods=['POST'])\ndef create_item():\n    data = request.json\n    return jsonify(data), 201",
+    "answers": [
+      "flask api example",
+      "python rest api",
+      "flask route methods",
+      "flask jsonify",
+      "flask blueprint"
+    ]
+  },
+  {
+    "id": "kb-typescript-basics",
+    "title": "TypeScript Basics",
+    "category": "coding",
+    "language": "typescript",
+    "tags": ["typescript", "ts", "types", "interface", "generics"],
+    "content": "TypeScript adds static types to JS. interface defines object shapes. type aliases. Generics with <T>. Union types A|B. Optional ?. Non-null !. Enums. Compiles to JS with tsc.",
+    "snippet": "interface User {\n  id: number;\n  name: string;\n  email?: string;\n}\n\nfunction greet<T>(val: T): T {\n  return val;\n}\n\nconst user: User = { id: 1, name: 'Alice' };",
+    "answers": [
+      "typescript basics",
+      "ts interface vs type",
+      "typescript generics",
+      "typescript tutorial",
+      "ts union types"
+    ]
+  },
+  {
+    "id": "kb-curl-http",
+    "title": "HTTP Status Codes & Curl",
+    "category": "coding",
+    "language": "bash",
+    "tags": ["http", "status codes", "curl", "rest", "api"],
+    "content": "HTTP status: 2xx success, 3xx redirect, 4xx client error, 5xx server error. Common: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 429 Too Many, 500 Server Error.",
+    "snippet": "# GET\ne curl -X GET https://api.example.com/items\n# POST\ncurl -X POST https://api.example.com/items \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"name\": \"Item\"}'\n# Auth\ncurl -H 'Authorization: Bearer TOKEN' URL",
+    "answers": [
+      "http status codes",
+      "curl post example",
+      "curl with json",
+      "400 vs 401 vs 403",
+      "rest api status codes"
+    ]
+  },
+  {
+    "id": "kb-python-basics",
+    "title": "Python Hello World + File I/O",
+    "category": "coding",
+    "language": "python",
+    "tags": ["python", "files", "open", "read", "write", "with"],
+    "content": "File I/O with open() and context manager 'with'. Read: mode='r', write: 'w', append: 'a', binary: 'b'. Paths via os/pathlib. Always close files or use with block for auto cleanup.",
+    "snippet": "with open('data.txt', 'r') as f:\n    content = f.read()\n\nwith open('output.txt', 'w') as f:\n    f.write('Hello\\n')\n\nfrom pathlib import Path\np = Path('data.txt')\nif p.exists():\n    print(p.read_text())",
+    "answers": [
+      "python read file",
+      "python write file",
+      "python with open",
+      "pathlib example",
+      "python file handling"
+    ]
+  }
+]

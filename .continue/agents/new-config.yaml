@@ -1,0 +1,36 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Example Config
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+models:
+  - name: my gpt-5
+    provider: openai
+    model: gpt-5
+    apiKey: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
+  - name: qwen2.5-coder 7b
+    provider: ollama
+    model: qwen2.5-coder:7b
+    roles:
+      - apply
+      - autocomplete
+      - chat
+      - edit
+  - name: Claude 4 Sonnet
+    provider: anthropic
+    model: claude-sonnet-4-20250514
+    apiKey: ${{ANTHROPIC_API_KEY}}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 }}
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 200000
+      maxTokens: 64000
+    capabilities:
+      - tool_use
+      - image_input

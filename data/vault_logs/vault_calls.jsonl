@@ -1,0 +1,2 @@
+{"timestamp": "2026-08-03T09:40:43.123230+00:00", "provider": "local-knowledge", "model": "local-knowledge-engine", "latency_ms": 507, "success": true, "cost_usd": 0.0, "key_index": 0, "error": null}
+{"timestamp": "2026-08-03T09:46:53.280489+00:00", "provider": "local-knowledge", "model": "local-knowledge-engine", "latency_ms": 512, "success": true, "cost_usd": 0.0, "key_index": 0, "error": null}

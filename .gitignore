@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+frontend/.env
+backend/.env
+*.secret
+*.key
+service-account.json
+
+# Build outputs
+frontend/out/
+frontend/.next/
+backend/.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Uploads (local dev)
+uploads/
+
+# Database (local dev)
+*.db
+*.sqlite
+
+# Docker volumes
+docker-volumes/
+*.tar
+
+# Secrets and credentials
+*.pem
+*.p12
+*.pfx
+*.crt
+*.ca-bundle
+token.json
+credentials.json
+
+# Monitoring data
+prometheus_data/
+grafana_data/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Test coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp

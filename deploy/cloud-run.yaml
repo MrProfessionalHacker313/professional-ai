@@ -1,0 +1,147 @@
+# =============================================================================
+# MEDIA VAULT — Google Cloud Run Auto-Scale Config
+# Deploy the backend as a Cloud Run service with auto-scaling.
+# For the media-worker, use a separate Cloud Run service or a GPU VM.
+# =============================================================================
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: media-vault-backend
+  namespace: your-project
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Autoscaling: scale to zero when idle, max 100 instances
+        autoscaling.knative.dev/maxScale: "100"
+        autoscaling.knative.dev/minScale: "1"
+        # CPU always allocated (needed for WebSocket connections)
+        run.googleapis.com/cpu-throttling: "false"
+        # Concurrency: 80 requests per instance
+        run.googleapis.com/concurrency: "80"
+        # Memory and CPU
+        run.googleapis.com/memory: "2Gi"
+        run.googleapis.com/cpu: "2"
+        # Timeout: 60s for API calls
+        run.googleapis.com/timeout: "60s"
+        # Environment variables from Secret Manager
+        run.googleapis.com/env-vars-from-secret: "media-vault-env"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      containers:
+        - image: gcr.io/your-project/media-vault-backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: redis-url
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: secret-key
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: jwt-secret
+            - name: INTERNAL_WORKER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: internal-worker-secret
+            - name: FAL_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: fal-keys
+            - name: KLING_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: kling-keys
+            - name: RUNWAY_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: runway-keys
+            - name: ELEVENLABS_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: media-vault-secrets
+                  key: elevenlabs-keys
+            - name: COMFYUI_URL
+              value: "http://media-vault-gpu:8188"
+---
+# Separate service for media-worker (if deploying as Cloud Run Job)
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: media-vault-worker
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      template:
+        spec:
+          containers:
+            - image: gcr.io/your-project/media-vault-worker:latest
+              resources:
+                limits:
+                  cpu: "4"
+                  memory: "8Gi"
+                  nvidia.com/gpu: "1"
+              env:
+                - name: REDIS_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: media-vault-secrets
+                      key: redis-url
+                - name: FAL_KEYS
+                  valueFrom:
+                    secretKeyRef:
+                      name: media-vault-secrets
+                      key: fal-keys
+                - name: KLING_KEYS
+                  valueFrom:
+                    secretKeyRef:
+                      name: media-vault-secrets
+                      key: kling-keys
+                - name: COMFYUI_URL
+                  value: "http://media-vault-gpu:8188"
+          restartPolicy: Never
+---
+# Auto-scaling policy for GPU worker
+apiVersion: autoscaling.gcp.cloud-native-packages.io/v1alpha1
+kind: GPUScaler
+metadata:
+  name: media-vault-gpu-scaler
+spec:
+  targetRef:
+    apiVersion: run.googleapis.com/v1
+    kind: Service
+    name: media-vault-gpu
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  scaleToZero:
+    enabled: false  # GPU VMs should stay warm for fast response

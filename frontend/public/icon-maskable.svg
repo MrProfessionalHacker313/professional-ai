@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Professional AI Maskable Icon">
+  <rect width="512" height="512" fill="#0b1220"/>
+  <rect x="64" y="64" width="384" height="384" rx="88" fill="#1d4ed8"/>
+  <circle cx="256" cy="230" r="86" fill="#e2e8f0"/>
+  <rect x="174" y="302" width="164" height="52" rx="26" fill="#38bdf8"/>
+  <circle cx="224" cy="220" r="10" fill="#0f172a"/>
+  <circle cx="288" cy="220" r="10" fill="#0f172a"/>
+  <path d="M224 257c10 11 21 16 32 16 11 0 22-5 32-16" stroke="#0f172a" stroke-width="9" stroke-linecap="round" fill="none"/>
+</svg>

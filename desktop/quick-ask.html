@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ask Pro AI</title>
+    <style>
+      :root {
+        --bg: #0a0f1a;
+        --card: #111a2b;
+        --border: #243047;
+        --text: #e8eefc;
+        --muted: #a6b5d6;
+        --brand: #36d1dc;
+        --brand2: #5b86e5;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 10% 10%, #16233f, var(--bg));
+      }
+      .wrap {
+        padding: 16px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        background: rgba(17, 26, 43, 0.86);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        background: #0f1628;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        cursor: pointer;
+        color: white;
+        background: linear-gradient(135deg, var(--brand), var(--brand2));
+        font-weight: 600;
+      }
+      button.secondary {
+        background: #2b3958;
+      }
+      .out {
+        margin-top: 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #0f1628;
+        min-height: 170px;
+        max-height: 260px;
+        overflow: auto;
+        padding: 10px;
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+      .status {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Ask Pro AI</h1>
+        <p>Global shortcut: Ctrl+Shift+P. Works with local/offline Ollama when internet is unavailable.</p>
+        <textarea id="prompt" placeholder="Ask anything..."></textarea>
+        <div class="row">
+          <button id="askBtn">Ask Now</button>
+          <button id="openBtn" class="secondary">Open Full App</button>
+        </div>
+        <div class="status" id="status">Ready.</div>
+        <div class="out" id="output"></div>
+      </div>
+    </div>
+
+    <script>
+      const askBtn = document.getElementById("askBtn");
+      const openBtn = document.getElementById("openBtn");
+      const promptEl = document.getElementById("prompt");
+      const outputEl = document.getElementById("output");
+      const statusEl = document.getElementById("status");
+
+      async function runAsk() {
+        const prompt = promptEl.value.trim();
+        if (!prompt) {
+          statusEl.textContent = "Enter a prompt first.";
+          return;
+        }
+
+        statusEl.textContent = "Thinking...";
+        askBtn.disabled = true;
+        outputEl.textContent = "";
+
+        const result = await window.proAI.quickAsk(prompt);
+        if (result && result.ok) {
+          outputEl.textContent = result.text;
+          statusEl.textContent = "Done.";
+        } else {
+          outputEl.textContent = (result && result.text) || "Request failed.";
+          statusEl.textContent = "Could not complete request.";
+        }
+
+        askBtn.disabled = false;
+      }
+
+      askBtn.addEventListener("click", runAsk);
+      promptEl.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          runAsk();
+        }
+      });
+
+      openBtn.addEventListener("click", async () => {
+        await window.proAI.openMain();
+      });
+    </script>
+  </body>
+</html>

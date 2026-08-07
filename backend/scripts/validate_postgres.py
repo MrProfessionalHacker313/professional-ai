@@ -1,0 +1,477 @@
+"""
+Professional AI - PostgreSQL Stack Validation Script
+Tests AUTH, ADMIN, and PAYMENTS against PostgreSQL.
+Run: python backend/scripts/validate_postgres.py
+"""
+
+import asyncio
+import sys
+import os
+import uuid
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Load .env from project root
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
+
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from sqlalchemy import text, select, func
+from app.database import init_db, close_db, check_db_connection, _get_engine, _get_session_factory
+from app.migrations import check_core_tables_exist
+from app.models.user import User, OAuthAccount, TwoFactorAuth, Session, LoginAttempt, Passkey
+from app.models.subscription import Subscription
+from app.models.revenue import RevenueLog, RefundLog
+from app.models.credit import Credit, CreditTransaction
+from app.models.vault import VaultData, VaultAccessLog
+from app.models.audit import AdminAuditLog, SecurityEvent
+from app.models.advanced_features import AIMemory
+from app.services.auth_service import AuthService
+from app.config import settings
+
+
+VALIDATION_RESULTS = []
+
+
+def log_result(category: str, test_name: str, passed: bool, detail: str = ""):
+    status = "PASS" if passed else "FAIL"
+    VALIDATION_RESULTS.append({
+        "category": category,
+        "test": test_name,
+        "status": status,
+        "detail": detail,
+    })
+    marker = "[PASS]" if passed else "[FAIL]"
+    print(f"  {marker} [{category}] {test_name}: {status}" + (f" - {detail}" if detail else ""))
+
+
+async def validate_connection():
+    """Test 1: Database connection."""
+    print("\n=== DATABASE CONNECTION ===")
+    try:
+        ok = await check_db_connection()
+        log_result("DB", "Connection", ok, "SELECT 1 succeeded" if ok else "Connection failed")
+    except Exception as e:
+        log_result("DB", "Connection", False, str(e))
+
+
+async def validate_migration():
+    """Test 2: Auto-migration ran and tables exist."""
+    print("\n=== AUTO-MIGRATION ===")
+    try:
+        ok = await check_core_tables_exist(settings.DATABASE_URL)
+        log_result("DB", "Core tables exist", ok)
+
+        # Check for schema_migrations tracking table
+        engine = _get_engine()
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT count(*) FROM schema_migrations"))
+            count = result.scalar()
+            log_result("DB", "Migration tracking table", count is not None, f"{count} migration(s) recorded")
+    except Exception as e:
+        log_result("DB", "Migration", False, str(e))
+
+
+async def validate_auth_stack():
+    """Test AUTH: sign-up, sign-in, sessions, 2FA, OAuth accounts."""
+    print("\n=== AUTH STACK ===")
+    factory = _get_session_factory()
+    test_email = f"test_auth_{uuid.uuid4().hex[:8]}@validation.test"
+    test_password = "TestPassword123!"
+
+    async with factory() as db:
+        try:
+            # 1. Sign-up (create user)
+            password_hash = AuthService.hash_password(test_password)
+            user = User(
+                email=test_email,
+                password_hash=password_hash,
+                display_name="Validation Test User",
+                is_active=True,
+                is_approved=True,
+                email_verified=True,
+            )
+            db.add(user)
+            await db.flush()
+            log_result("AUTH", "Sign-up (create user)", True, f"User ID: {user.id}")
+
+            # 2. Sign-in (verify password)
+            verified = AuthService.verify_password(test_password, password_hash)
+            log_result("AUTH", "Sign-in (password verify)", verified)
+
+            # 3. Create session (JWT refresh token)
+            refresh_token = AuthService.create_refresh_token(str(user.id))
+            token_hash = AuthService.hash_refresh_token(refresh_token)
+            session = Session(
+                user_id=user.id,
+                refresh_token_hash=token_hash,
+                ip_address="127.0.0.1",
+                user_agent="ValidationScript/1.0",
+                is_valid=True,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+            )
+            db.add(session)
+            await db.flush()
+            log_result("AUTH", "Session (JWT refresh)", True, f"Session ID: {session.id}")
+
+            # 4. 2FA (TOTP)
+            totp_secret = AuthService.generate_totp_secret()
+            import pyotp
+            totp = pyotp.TOTP(totp_secret)
+            valid_code = totp.now()
+            code_verified = AuthService.verify_totp_code(totp_secret, valid_code)
+            tfa = TwoFactorAuth(
+                user_id=user.id,
+                secret=totp_secret,
+                method="totp",
+                is_enabled=True,
+            )
+            db.add(tfa)
+            await db.flush()
+            log_result("AUTH", "2FA (TOTP code)", code_verified, f"Secret: {totp_secret[:8]}...")
+
+            # 5. OAuth account
+            oauth = OAuthAccount(
+                user_id=user.id,
+                provider="google",
+                provider_account_id=f"oauth_{uuid.uuid4().hex[:12]}",
+                access_token="test_access_token",
+                refresh_token="test_refresh_token",
+            )
+            db.add(oauth)
+            await db.flush()
+            log_result("AUTH", "OAuth account (Google)", True, f"OAuth ID: {oauth.id}")
+
+            # 6. Login attempt (audit)
+            attempt = LoginAttempt(
+                user_id=user.id,
+                email=test_email,
+                ip_address="127.0.0.1",
+                user_agent="ValidationScript/1.0",
+                success=True,
+            )
+            db.add(attempt)
+            await db.flush()
+            log_result("AUTH", "Login attempt (audit)", True, f"Attempt ID: {attempt.id}")
+
+            # 7. Read back all auth data
+            result = await db.execute(
+                select(User).where(User.email == test_email)
+            )
+            read_user = result.scalar_one_or_none()
+            log_result("AUTH", "Read user back", read_user is not None)
+
+            sess_result = await db.execute(
+                select(Session).where(Session.user_id == user.id)
+            )
+            read_sessions = sess_result.scalars().all()
+            log_result("AUTH", "Read sessions back", len(read_sessions) == 1)
+
+            oauth_result = await db.execute(
+                select(OAuthAccount).where(OAuthAccount.user_id == user.id)
+            )
+            read_oauth = oauth_result.scalars().all()
+            log_result("AUTH", "Read OAuth accounts back", len(read_oauth) == 1)
+
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            log_result("AUTH", "Auth stack", False, str(e))
+
+
+async def validate_admin_stack():
+    """Test ADMIN: owner email detection, users table queries, revenue aggregation."""
+    print("\n=== ADMIN STACK ===")
+    factory = _get_session_factory()
+    admin_email = f"admin_{uuid.uuid4().hex[:8]}@validation.test"
+
+    async with factory() as db:
+        try:
+            # 1. Create admin user (owner detection)
+            admin_user = User(
+                email=admin_email,
+                password_hash=AuthService.hash_password("AdminPassword123!"),
+                is_admin=True,
+                is_approved=True,
+                is_active=True,
+                email_verified=True,
+            )
+            db.add(admin_user)
+            await db.flush()
+            log_result("ADMIN", "Owner email detection (create admin)", True, f"Email: {admin_email}")
+
+            # 2. Users table query (list with pagination)
+            result = await db.execute(
+                select(User).order_by(User.created_at.desc()).limit(10)
+            )
+            users = result.scalars().all()
+            log_result("ADMIN", "Users table query (list)", len(users) >= 1, f"Found {len(users)} users")
+
+            # 3. Count query
+            count_result = await db.execute(select(func.count(User.id)))
+            total_users = count_result.scalar()
+            log_result("ADMIN", "Users count query", total_users >= 1, f"Total: {total_users}")
+
+            # 4. Search query (ilike)
+            search_result = await db.execute(
+                select(User).where(User.email.ilike(f"%{admin_email.split('@')[0]}%"))
+            )
+            found = search_result.scalars().all()
+            log_result("ADMIN", "Users search (ilike)", len(found) >= 1)
+
+            # 5. Admin audit log
+            audit = AdminAuditLog(
+                admin_id=admin_user.id,
+                action="validation_test",
+                target_type="user",
+                target_id=str(admin_user.id),
+                details="Validation test audit entry",
+                ip_address="127.0.0.1",
+            )
+            db.add(audit)
+            await db.flush()
+            log_result("ADMIN", "Admin audit log", True, f"Audit ID: {audit.id}")
+
+            # 6. Security event
+            event = SecurityEvent(
+                event_type="validation_test",
+                severity="low",
+                user_id=admin_user.id,
+                ip_address="127.0.0.1",
+                details="Validation test security event",
+            )
+            db.add(event)
+            await db.flush()
+            log_result("ADMIN", "Security event", True, f"Event ID: {event.id}")
+
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            log_result("ADMIN", "Admin stack", False, str(e))
+
+
+async def validate_payments_stack():
+    """Test PAYMENTS: subscription, charge, transactions, refund."""
+    print("\n=== PAYMENTS STACK ===")
+    factory = _get_session_factory()
+    user_email = f"pay_{uuid.uuid4().hex[:8]}@validation.test"
+
+    async with factory() as db:
+        try:
+            # 1. Create user
+            user = User(
+                email=user_email,
+                password_hash=AuthService.hash_password("PayPassword123!"),
+                is_active=True,
+                is_approved=True,
+                email_verified=True,
+            )
+            db.add(user)
+            await db.flush()
+
+            # 2. Create subscription
+            sub = Subscription(
+                user_id=user.id,
+                plan="pro",
+                stripe_customer_id=f"cus_{uuid.uuid4().hex[:12]}",
+                payment_method="stripe",
+                status="active",
+                current_period_start=datetime.now(timezone.utc),
+                current_period_end=datetime.now(timezone.utc) + timedelta(days=30),
+            )
+            db.add(sub)
+            await db.flush()
+            log_result("PAYMENTS", "Save subscription", True, f"Sub ID: {sub.id}, Plan: {sub.plan}")
+
+            # 3. Create revenue log (charge)
+            tx_id = f"tx_{uuid.uuid4().hex[:16]}"
+            revenue = RevenueLog(
+                user_id=user.id,
+                subscription_id=sub.id,
+                amount=19.99,
+                currency="USD",
+                payment_method="stripe",
+                transaction_id=tx_id,
+                status="completed",
+                description="Pro plan monthly subscription",
+            )
+            db.add(revenue)
+            await db.flush()
+            log_result("PAYMENTS", "Charge (revenue log)", True, f"Revenue ID: {revenue.id}, Amount: ${revenue.amount}")
+
+            # 4. Revenue aggregation query
+            agg_result = await db.execute(
+                select(
+                    func.sum(RevenueLog.amount).label("total"),
+                    func.count(RevenueLog.id).label("count"),
+                    func.avg(RevenueLog.amount).label("avg"),
+                ).where(RevenueLog.status == "completed")
+            )
+            stats = agg_result.one()
+            log_result("PAYMENTS", "Revenue aggregation (sum/count/avg)", stats.total is not None, f"Total: ${stats.total}")
+
+            # 5. Create credit account
+            credit = Credit(
+                user_id=user.id,
+                balance=2000,
+                total_granted=2000,
+                total_consumed=0,
+                rollover_percentage=20,
+            )
+            db.add(credit)
+            await db.flush()
+            log_result("PAYMENTS", "Credits account", True, f"Credit ID: {credit.id}, Balance: {credit.balance}")
+
+            # 6. Credit transaction
+            ct = CreditTransaction(
+                credit_id=credit.id,
+                user_id=user.id,
+                amount=2000,
+                balance_after=2000,
+                transaction_type="subscription_grant",
+                action="pro_plan_purchase",
+                description="Credits granted for Pro plan",
+            )
+            db.add(ct)
+            await db.flush()
+            log_result("PAYMENTS", "Credit transaction", True, f"CT ID: {ct.id}")
+
+            # 7. Refund
+            refund = RefundLog(
+                revenue_id=revenue.id,
+                admin_id=user.id,
+                amount=revenue.amount,
+                reason="Validation test refund",
+            )
+            db.add(refund)
+            revenue.status = "refunded"
+            await db.flush()
+            log_result("PAYMENTS", "Refund", True, f"Refund ID: {refund.id}")
+
+            # 8. Read back subscription
+            sub_result = await db.execute(
+                select(Subscription).where(Subscription.user_id == user.id)
+            )
+            read_sub = sub_result.scalar_one_or_none()
+            log_result("PAYMENTS", "Read subscription back", read_sub is not None)
+
+            # 9. Read back revenue
+            rev_result = await db.execute(
+                select(RevenueLog).where(RevenueLog.transaction_id == tx_id)
+            )
+            read_rev = rev_result.scalar_one_or_none()
+            log_result("PAYMENTS", "Read transaction back", read_rev is not None)
+            log_result("PAYMENTS", "Refund status updated", read_rev.status == "refunded" if read_rev else False)
+
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            log_result("PAYMENTS", "Payments stack", False, str(e))
+
+
+async def validate_vault_stack():
+    """Test VAULT: encrypted data storage."""
+    print("\n=== VAULT STACK ===")
+    factory = _get_session_factory()
+    user_email = f"vault_{uuid.uuid4().hex[:8]}@validation.test"
+
+    async with factory() as db:
+        try:
+            user = User(
+                email=user_email,
+                password_hash=AuthService.hash_password("VaultPassword123!"),
+                is_active=True,
+                is_approved=True,
+                email_verified=True,
+            )
+            db.add(user)
+            await db.flush()
+
+            vault = VaultData(
+                user_id=user.id,
+                project_name="test_project",
+                data_encrypted="encrypted_payload_data_here",
+                encryption_key_id="key_v1",
+                iv_hex="aabbccdd" * 8,
+                auth_tag_hex="11223344" * 8,
+            )
+            db.add(vault)
+            await db.flush()
+            log_result("VAULT", "Save vault data", True, f"Vault ID: {vault.id}")
+
+            result = await db.execute(
+                select(VaultData).where(VaultData.user_id == user.id)
+            )
+            read_vault = result.scalars().all()
+            log_result("VAULT", "Read vault data back", len(read_vault) == 1)
+
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            log_result("VAULT", "Vault stack", False, str(e))
+
+
+async def main():
+    print("=" * 60)
+    print("  PROFESSIONAL AI - POSTGRESQL STACK VALIDATION")
+    print("=" * 60)
+    print(f"  Database URL: {settings.DATABASE_URL}")
+    print(f"  Environment: {settings.ENVIRONMENT}")
+    print("=" * 60)
+
+    # Initialize database (runs migrations)
+    print("\n>>> Running auto-migration on startup...")
+    try:
+        await init_db()
+        print("    [OK] Auto-migration completed")
+    except Exception as e:
+        print(f"    [FAIL] Auto-migration failed: {e}")
+        return
+
+    # Run all validations
+    await validate_connection()
+    await validate_migration()
+    await validate_auth_stack()
+    await validate_admin_stack()
+    await validate_payments_stack()
+    await validate_vault_stack()
+
+    # Summary
+    print("\n" + "=" * 60)
+    print("  VALIDATION SUMMARY")
+    print("=" * 60)
+    total = len(VALIDATION_RESULTS)
+    passed = sum(1 for r in VALIDATION_RESULTS if r["status"] == "PASS")
+    failed = sum(1 for r in VALIDATION_RESULTS if r["status"] == "FAIL")
+
+    categories = {}
+    for r in VALIDATION_RESULTS:
+        cat = r["category"]
+        if cat not in categories:
+            categories[cat] = {"pass": 0, "fail": 0}
+        if r["status"] == "PASS":
+            categories[cat]["pass"] += 1
+        else:
+            categories[cat]["fail"] += 1
+
+    for cat, counts in categories.items():
+        status = "PASS" if counts["fail"] == 0 else "FAIL"
+        print(f"  {cat}: {counts['pass']}/{counts['pass'] + counts['fail']} {status}")
+
+    print(f"\n  TOTAL: {passed}/{total} passed, {failed} failed")
+    print("=" * 60)
+
+    if failed == 0:
+        print("\n  [SUCCESS] ALL CHECKS PASSED — PostgreSQL stack fully validated")
+    else:
+        print(f"\n  [FAILED] {failed} CHECK(S) FAILED — review details above")
+
+    await close_db()
+    return failed == 0
+
+
+if __name__ == "__main__":
+    result = asyncio.run(main())
+    sys.exit(0 if result else 1)

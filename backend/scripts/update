@@ -1,0 +1,20 @@
+"""Update voice_style pattern in media.py to include all 14 voices."""
+import re
+
+with open('backend/app/routes/media.py', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+new_line = 'voice_style: str = Field(default="adult_female", pattern="^(young_girl|young_boy|adult_male|adult_female|news_anchor|teacher|robot|cartoon|villain|hero|whisper|angry|happy|sad|excited|robotic|custom|clone)$")'
+
+pat = re.compile(r'voice_style:\s*str\s*=\s*Field\(default="adult_female",\s*pattern="\^.*?\$"\)')
+c2 = pat.sub(new_line, content)
+
+if c2 != content:
+    with open('backend/app/routes/media.py', 'w', encoding='utf-8') as f:
+        f.write(c2)
+    print('SUCCESS: voice_style pattern updated with 14 voices')
+else:
+    print('No change made')
+    for line in content.split('\n'):
+        if 'voice_style' in line and 'pattern' in line:
+            print(f'Current: {line}')

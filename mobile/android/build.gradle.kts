@@ -1,0 +1,6 @@
+plugins:
+  - flutter
+
+sdk:
+  minimumFlutterVersion: 3.13.0
+  version: 1.0.0
