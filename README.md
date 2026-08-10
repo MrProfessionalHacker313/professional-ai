@@ -2,7 +2,7 @@
 
 **World's most powerful all-in-one AI assistant.** Code generation, cybersecurity analysis, bug fixing, expert guidance, image generation, voice interaction, document analysis, and 15+ advanced AI capabilities — all in one production-ready, self-hosted SaaS platform.
 
-[🚀 Open Professional AI](http://localhost:3000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai) · [📖 Documentation](docs/API.md)
+[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai) · [📖 Documentation](docs/API.md)
 
 ---
 
@@ -27,7 +27,7 @@ Professional AI is a **complete, self-hosted AI platform** that brings together 
 
 **If already running locally:**
 ```
-👉 http://localhost:3000
+👉 http://localhost:8000
 ```
 
 **To start Professional AI:**
@@ -39,7 +39,7 @@ cd "C:\Users\GrafiX\Desktop\professional-ai"
 docker-compose up -d
 
 # Access the application
-# Frontend: http://localhost:3000
+# Frontend: http://localhost:8000
 # Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/api/docs
 ```
@@ -763,7 +763,7 @@ docker exec -it pro-ai-ollama ollama pull deepseek-r1
 docker exec -it pro-ai-ollama ollama pull mistral
 
 # Access the application
-# Frontend: http://localhost:3000
+# Frontend: http://localhost:8000
 # Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/api/docs
 ```
@@ -1174,13 +1174,57 @@ docker-compose up -d
 
 **🎉 Your AI is now running at:**
 ```
-👉 http://localhost:3000
+👉 http://localhost:8000
 ```
 
 **Other useful URLs:**
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/api/docs
 - Grafana Dashboard: http://localhost:3001
+
+---
+
+## 🔒 Security & Hardening
+
+**Professional AI is built with security-first architecture.** This section covers the built-in protections and what you must configure to keep your deployment safe.
+
+### Built-In Protections
+- WAF + rate limiting + security headers at the edge
+- JWT + OAuth + 2FA + Passkeys
+- AES-256-GCM encrypted vault
+- Input sanitization + CSRF protection + RLS in database
+- HTTPS enforcement + HSTS + CSP
+- Automatic secret scanning + dependency audits
+
+### Local Deployment Warning
+By default, Docker Compose exposes:
+- `localhost:8000` — the app (intended)
+- `localhost:5432` — PostgreSQL
+- `localhost:6379` — Redis
+
+**If this machine is multi-user or reachable from a network**, restrict database access:
+```yaml
+# docker-compose.yml
+postgres:
+  ports:
+    - "127.0.0.1:5432:5432"   # localhost only
+redis:
+  ports:
+    - "127.0.0.1:6379:6379"   # localhost only
+```
+
+### Production Deployment
+Use the hardened Nginx reverse proxy in `deploy/nginx.conf`:
+- Terminates TLS (port 443 only)
+- Blocks SQLi, XSS, path traversal, SSRF
+- Rate limits auth, admin, and API endpoints
+- Internal services are not exposed externally
+
+### Secrets Hygiene
+- Never commit `.env` or secret files
+- Rotate `SECRET_KEY`, `JWT_SECRET`, `ENCRYPTION_KEY`
+- Use strong DB and Redis passwords
+- See `SECURITY-README.md` for the full checklist
 
 ---
 
@@ -1194,4 +1238,4 @@ docker-compose up -d
 
 **Built with ❤️ — World's Most Powerful All-in-One AI Assistant**
 
-[🚀 Open Professional AI](http://localhost:3000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)
+[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)
