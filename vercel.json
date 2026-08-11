@@ -10,5 +10,10 @@
       "src": "/(.*)",
       "dest": "api/main.py"
     }
-  ]
+  ],
+  "build": {
+    "env": {
+      "PYTHONPATH": "."
+    }
+  }
 }
