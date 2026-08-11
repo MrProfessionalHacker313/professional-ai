@@ -300,9 +300,12 @@ app = FastAPI(
 # ===================================================================
 
 # 1. CORS - SABSE PEHLE (outermost) - Bug 3 fix
+# allow_origin_regex handles random Cloudflare tunnel URLs (trycloudflare.com)
+# Cloudflare tunnel URLs are random each time, so we use a regex to match any subdomain
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=r"https?://.*\.trycloudflare\.com",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-Id"],

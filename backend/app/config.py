@@ -257,7 +257,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     def is_owner_email(self, email: Optional[str]) -> bool:
         """True when the email matches OWNER_EMAIL configured in environment."""

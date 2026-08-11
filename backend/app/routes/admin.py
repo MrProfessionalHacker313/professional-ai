@@ -1119,9 +1119,11 @@ async def get_analytics(
     total_users = await db.execute(select(func.count(User.id)))
     total_users_count = total_users.scalar()
 
+    # Use timedelta instead of PostgreSQL-specific make_interval for DB compatibility
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
     active_users = await db.execute(
         select(func.count(func.distinct(UsageLog.user_id)))
-        .where(UsageLog.created_at >= func.now() - func.make_interval(days=7))
+        .where(UsageLog.created_at >= seven_days_ago)
     )
     active_users_count = active_users.scalar()
 
@@ -1136,10 +1138,11 @@ async def get_analytics(
     total_calls = await db.execute(select(func.count(UsageLog.id)))
     total_calls_count = total_calls.scalar()
 
+    twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
     today_calls = await db.execute(
         select(func.count(UsageLog.id)).where(
             UsageLog.action == "code_generation",
-            UsageLog.created_at >= func.now() - func.make_interval(hours=24),
+            UsageLog.created_at >= twenty_four_hours_ago,
         )
     )
     today_calls_count = today_calls.scalar()
