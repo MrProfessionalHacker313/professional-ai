@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/main.py": {
+    "app.py": {
       "runtime": "python3.11",
       "includeFiles": "backend/**"
     }
@@ -8,12 +8,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/main.py"
+      "dest": "app.py"
     }
-  ],
-  "build": {
-    "env": {
-      "PYTHONPATH": "."
-    }
-  }
+  ]
 }
