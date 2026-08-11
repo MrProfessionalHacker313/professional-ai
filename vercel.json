@@ -1,7 +1,6 @@
 {
   "functions": {
     "backend/app/main.py": {
-      "runtime": "python3.11",
       "includeFiles": "backend/**"
     }
   },
