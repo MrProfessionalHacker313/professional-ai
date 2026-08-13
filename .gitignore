@@ -78,3 +78,6 @@ temp/
 *.temp
 *.tsbuildinfo
 frontend_src_files.txt
+temp_update.py
+update.py
+dy/
