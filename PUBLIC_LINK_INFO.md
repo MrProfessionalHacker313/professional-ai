@@ -1,55 +1,55 @@
-# 🌐 Professional AI — Public Access Link
+# 🌐 Aapka AI - Public Link Ready!
 
-## 🔗 Live Public Link
+## 🔗 Aapka Permanent Share Link:
 
 ```
 https://violation-recreational-barnes-year.trycloudflare.com
 ```
 
-> ⚠️ **Important:** This link works while the tunnel is active. To keep it running, keep the `START_PUBLIC_LINK.bat` window open.
+> ⚠️ **IMPORTANT:** Ye link tab tak chalega jab tak `START_PUBLIC_LINK.bat` window khuli hai. Window band karne se link band ho jayega.
 
 ---
 
-## 📱 Share on Social Media
+## 📱 Social Media Share Text (Copy-Paste Ready)
 
 ### Facebook / Instagram:
 ```
-🚀 My AI Assistant is now LIVE!
+🚀 Mera AI Assistant ab LIVE hai!
 
-🤖 This AI can do everything for you:
-✅ Questions & answers
+🤖 Yeh AI aapke liye kuch bhi kar sakta hai:
+✅ Questions ka jawab
 ✅ Coding & Programming
 ✅ Content Writing
 ✅ Image/Video Generation
 ✅ Voice & Audio
-✅ And much more!
+✅ Aur bhi bahut kuch!
 
-👉 Try it now: https://violation-recreational-barnes-year.trycloudflare.com
+👉 Abhi try karein: https://violation-recreational-barnes-year.trycloudflare.com
 
 #AI #ArtificialIntelligence #FreeAI #AIAssistant #Tech
 ```
 
 ### WhatsApp / Telegram:
 ```
-🤖 *My AI Assistant is now LIVE!*
+🤖 *Mera AI Assistant ab LIVE hai!*
 
-This AI can do everything for you:
-✅ Questions & answers
+Yeh AI aapke liye kuch bhi kar sakta hai:
+✅ Questions ka jawab
 ✅ Coding & Programming
 ✅ Content Writing
 ✅ Image/Video Generation
 ✅ Voice & Audio
 
-👉 *Try it now:* https://violation-recreational-barnes-year.trycloudflare.com
+👉 *Abhi try karein:* https://violation-recreational-barnes-year.trycloudflare.com
 
 #AI #FreeAI #AIAssistant
 ```
 
 ### Twitter / X:
 ```
-🚀 My AI Assistant is now LIVE!
-🤖 Free AI that does everything - coding, writing, images, voice!
-👉 Try it: https://violation-recreational-barnes-year.trycloudflare.com
+🚀 Mera AI Assistant ab LIVE hai!
+🤖 Free AI jo kuch bhi kar sakta hai - coding, writing, images, voice!
+👉 Try karein: https://violation-recreational-barnes-year.trycloudflare.com
 #AI #FreeAI #Tech #ArtificialIntelligence
 ```
 
@@ -71,21 +71,21 @@ Try it now: https://violation-recreational-barnes-year.trycloudflare.com
 
 ---
 
-## 🚀 How to Create a New Public Link
+## 🚀 Link Dobara Kaise Banayein?
 
-If the link expires or you need a new one:
+Agar link band ho jaye ya naya link chahiye:
 
-1. Run **`START_ONE_CLICK_NO_DOCKER.bat`** to start the app
-2. Run **`START_PUBLIC_LINK.bat`** to create a new public tunnel
-3. Copy the new `trycloudflare.com` URL from the window
-4. Share the new link
+1. **`START_ONE_CLICK_NO_DOCKER.bat`** file par double-click karein (app start karne ke liye)
+2. **`START_PUBLIC_LINK.bat`** file par double-click karein
+3. Window mein naya link dikhega (trycloudflare URL)
+4. Naya link copy karke share karein
 
 ---
 
 ## ⚠️ Important Notes:
 
-- **Link stays active** while the tunnel window is open
-- **Frontend app** must be running (port 3000)
-- **Backend app** must be running (port 8000)
-- A new random URL is generated each time
-- **For a permanent custom domain**, you need a Cloudflare account + your own domain
+- **Link tab tak chalega** jab tak tunnel window khuli hai
+- **Frontend app** bhi chalna chahiye (port 3000)
+- **Backend app** bhi chalna chahiye (port 8000)
+- Har baar naya link banega (random URL)
+- **Permanent custom domain** ke liye Cloudflare account + domain chahiye
