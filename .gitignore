@@ -76,3 +76,5 @@ tmp/
 temp/
 *.tmp
 *.temp
+*.tsbuildinfo
+frontend_src_files.txt
