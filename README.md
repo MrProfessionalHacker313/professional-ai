@@ -2,7 +2,7 @@
 
 **World's most powerful all-in-one AI assistant.** Code generation, cybersecurity analysis, bug fixing, expert guidance, image generation, voice interaction, document analysis, and 15+ advanced AI capabilities — all in one production-ready, self-hosted SaaS platform.
 
-[🚀 Open Professional AI](http://localhost:3000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai) · [📖 Documentation](docs/API.md)
+[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai) · [📖 Documentation](docs/API.md)
 
 ---
 
@@ -27,7 +27,7 @@ Professional AI is a **complete, self-hosted AI platform** that brings together 
 
 **If already running locally:**
 ```
-👉 http://localhost:3000
+👉 http://localhost:8000
 ```
 
 **To start Professional AI:**
@@ -39,7 +39,7 @@ cd "C:\Users\GrafiX\Desktop\professional-ai"
 docker-compose up -d
 
 # Access the application
-# Frontend: http://localhost:3000
+# App: http://localhost:8000
 # Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/api/docs
 ```
@@ -763,7 +763,7 @@ docker exec -it pro-ai-ollama ollama pull deepseek-r1
 docker exec -it pro-ai-ollama ollama pull mistral
 
 # Access the application
-# Frontend: http://localhost:3000
+# App: http://localhost:8000
 # Backend API: http://localhost:8000
 # API Docs: http://localhost:8000/api/docs
 ```
@@ -1174,7 +1174,7 @@ docker-compose up -d
 
 **🎉 Your AI is now running at:**
 ```
-👉 http://localhost:3000
+👉 http://localhost:8000
 ```
 
 **Other useful URLs:**
@@ -1194,4 +1194,4 @@ docker-compose up -d
 
 **Built with ❤️ — World's Most Powerful All-in-One AI Assistant**
 
-[🚀 Open Professional AI](http://localhost:3000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)
+[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)
