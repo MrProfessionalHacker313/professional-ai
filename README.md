@@ -23,9 +23,83 @@ Professional AI is a **complete, self-hosted AI platform** that brings together 
 
 ## ⚡ Quick Access
 
-### 🌐 Open Professional AI
+### 🌐 Open Professional AI Now
 
-**If already running locally:**
+**👉 Click here to open Professional AI directly from any device (laptop, mobile, iPhone, Android):**
+
+**[http://localhost:8000](http://localhost:8000)**
+
+> ⚠️ **Note for GitHub visitors / public access:** `localhost:8000` opens the AI only on the machine where it is running. To access it from anywhere, set up the **permanent public URL** described below.
+
+---
+
+### 🔗 Permanent Public URL (Recommended for Public Access)
+
+Use this section if you want a **permanent public link** that works on any device without depending on temporary tunnels.
+
+#### Option 1: Port Forwarding + DDNS (Free, Permanent)
+
+1. **Set up port forwarding** on your router:
+   - Forward external port `80` or `443` to internal port `8000` of your machine
+   - Protocol: TCP
+   - Find your machine's local IP (e.g., `192.168.1.100`) via `ipconfig`
+
+2. **Get a free DDNS hostname** so your dynamic IP updates automatically:
+   - Sign up at [DuckDNS](https://www.duckdns.org) or [No-IP](https://www.noip.com)
+   - Create a subdomain (e.g., `myai.duckdns.org` or `myai.ddns.net`)
+   - Install their updater on your machine to keep IP in sync
+
+3. **Access your AI from anywhere:**
+   ```
+   👉 http://myai.duckdns.org
+   👉 https://myai.duckdns.org   (if you set up HTTPS)
+   ```
+
+#### Option 2: Serveo.net (Free SSH Tunnel, Persistent URL)
+
+1. Install [OpenSSH client](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)
+2. Run this command in PowerShell/Command Prompt:
+   ```bash
+   ssh -R 80:localhost:8000 serveo.net
+   ```
+3. Serveo gives you a URL like `https://myai.serveo.net`
+4. That URL stays active while the SSH session is open
+5. Add this URL to the **"My AI Public Link"** section below
+
+#### Option 3: Ngrok Reserved Domain (Paid, Custom Domain)
+
+- Buy an [ngrok reserved domain](https://ngrok.com/pricing)
+- Run: `ngrok http 8000 --domain=myai.ngrok.app`
+- Share `https://myai.ngrok.app` anywhere
+
+---
+
+### 📱 My AI Public Link (Set Your Permanent Link Here)
+
+Replace the placeholder below with your actual permanent public URL once configured:
+
+**🔗 My AI Permanent URL:**
+```
+👉 http://YOUR-PERMANENT-URL-HERE
+```
+
+> ⚠️ **Important:** After setting up DDNS + port forwarding or Serveo, replace `YOUR-PERMANENT-URL-HERE` with your real domain/tunnel so visitors on GitHub, social media, or any device can open it directly.
+
+---
+
+### 🌐 Temporary Public Link (Quick Share)
+
+If you need a quick public link for testing or temporary sharing, use the Cloudflare tunnel:
+
+**[https://violation-recreational-barnes-year.trycloudflare.com](https://violation-recreational-barnes-year.trycloudflare.com)**
+
+> ⚠️ **Note:** This link works while `START_PUBLIC_LINK.bat` is running. It is temporary and changes each time the tunnel restarts.
+
+---
+
+### 💻 Local Access (This Machine Only)
+
+**If running locally on this machine:**
 ```
 👉 http://localhost:8000
 ```
