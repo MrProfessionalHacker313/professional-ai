@@ -1,0 +1,8 @@
+[project]
+name = "professional-ai"
+version = "1.0.0"
+description = "Professional AI - World's most powerful all-in-one AI assistant"
+requires-python = ">=3.11"
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"
