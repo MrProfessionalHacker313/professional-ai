@@ -41,6 +41,7 @@ class CacheService:
                 socket_timeout=5,
                 retry_on_timeout=True,
                 health_check_interval=30,
+                protocol=2,
             )
             await self._client.ping()
             logger.info("Redis cache connected")

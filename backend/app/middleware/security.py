@@ -359,15 +359,15 @@ def validate_csrf_token(token: str) -> bool:
     # Check Redis store (production)
     try:
         import redis.asyncio as redis
-        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
         import asyncio
         loop = asyncio.get_event_loop()
         result = loop.run_until_complete(redis_client.get(f"csrf:{token}"))
         if result:
             loop.run_until_complete(redis_client.delete(f"csrf:{token}"))
             return True
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"CSRF Redis validation failed: {e}")
 
     return False
 

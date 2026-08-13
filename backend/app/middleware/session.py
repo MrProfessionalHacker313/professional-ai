@@ -39,25 +39,11 @@ class SessionTimeoutMiddleware(BaseHTTPMiddleware):
             if not user_id:
                 return await call_next(request)
 
-            # Check session timeout via Redis
+            # Update last activity only — auto-logout is disabled permanently
             import redis.asyncio as redis
             try:
-                redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+                redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
                 session_key = f"session:{user_id}"
-                last_activity = await redis_client.get(session_key)
-
-                if last_activity:
-                    last_activity_dt = datetime.fromisoformat(last_activity)
-                    timeout_minutes = settings.SESSION_TIMEOUT_MINUTES
-                    if (datetime.now(timezone.utc) - last_activity_dt).total_seconds() > timeout_minutes * 60:
-                        logger.warning(f"Session timeout for user {user_id}")
-                        await redis_client.delete(session_key)
-                        return JSONResponse(
-                            status_code=401,
-                            content={"error": "session_expired", "message": "Session expired due to inactivity"}
-                        )
-
-                # Update last activity
                 await redis_client.setex(session_key, settings.SESSION_TIMEOUT_MINUTES * 60, datetime.now(timezone.utc).isoformat())
                 await redis_client.aclose()
             except Exception as e:

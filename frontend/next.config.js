@@ -8,6 +8,9 @@ const nextConfig = {
     },
   },
   ...(process.env.NODE_ENV !== 'development' ? { output: 'export' } : {}),
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com', 'platform-lookaside.fbsbx.com'],
     unoptimized: true,

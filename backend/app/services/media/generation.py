@@ -21,6 +21,7 @@ from loguru import logger
 
 from app.config import settings
 from app.services.media.provider_keys import media_key_vault
+from app.services.media.media_providers import media_provider_registry
 
 
 DEFAULT_TIMEOUT = 10.0  # 10 seconds max per external call
@@ -53,39 +54,46 @@ class MediaGenerationService:
     ) -> Dict[str, Any]:
         """
         Generate an image using multi-key rotation with automatic failover.
-        Provider chain: fal.ai → Replicate.
+        Provider chain from registry: fal.ai → Replicate → Stability AI.
         10-second timeout per call. Falls back to placeholder if all fail.
         """
         if output_path is None:
             job_id = os.urandom(8).hex()
             output_path = str(self._output_dir / f"img_{job_id}.png")
 
-        # Try fal.ai with key rotation
-        fal_keys = getattr(settings, "FAL_KEYS", "") or ""
-        if fal_keys or settings.FAL_AI_API_KEY:
-            providers = [
-                ("fal_ai", lambda k: self._fal_generate_image(prompt, negative_prompt, width, height, model, output_path, k)),
-                ("replicate", lambda k: self._replicate_generate_image(prompt, negative_prompt, width, height, model, output_path, k)),
-            ]
-            for provider_name, provider_fn in providers:
-                keys = media_key_vault.fal._keys if provider_name == "fal_ai" else media_key_vault.replicate._keys
-                rotator = media_key_vault.fal if provider_name == "fal_ai" else media_key_vault.replicate
-                for _ in keys:
-                    key = rotator.get_active_key()
-                    if not key:
-                        break
-                    try:
-                        result = await asyncio.wait_for(provider_fn(key), timeout=DEFAULT_TIMEOUT)
-                        if result.get("success"):
-                            return result
-                    except asyncio.TimeoutError:
-                        logger.warning(f"{provider_name} image generation timed out after {DEFAULT_TIMEOUT}s")
-                        rotator.mark_error(key)
-                    except Exception as e:
-                        logger.warning(f"{provider_name} image generation failed: {e}")
-                        rotator.mark_error(key)
+        chain = media_provider_registry.get_failover_chain("image")
+        provider_map = {
+            "fal_ai": lambda k: self._fal_generate_image(prompt, negative_prompt, width, height, model, output_path, k),
+            "replicate": lambda k: self._replicate_generate_image(prompt, negative_prompt, width, height, model, output_path, k),
+            "stability_ai": lambda k: self._stability_generate_image(prompt, negative_prompt, width, height, model, output_path, k),
+        }
 
-        # Fallback: generate a placeholder image with Pillow
+        for provider_name in chain:
+            rotator = getattr(media_key_vault, provider_name, None)
+            if not rotator:
+                continue
+            keys = rotator._keys if hasattr(rotator, "_keys") else []
+            if not keys:
+                continue
+            provider_fn = provider_map.get(provider_name)
+            if not provider_fn:
+                continue
+            for _ in keys:
+                key = rotator.get_active_key()
+                if not key:
+                    break
+                try:
+                    result = await asyncio.wait_for(provider_fn(key), timeout=DEFAULT_TIMEOUT)
+                    if result.get("success"):
+                        result["provider"] = provider_name
+                        return result
+                except asyncio.TimeoutError:
+                    logger.warning(f"{provider_name} image generation timed out after {DEFAULT_TIMEOUT}s")
+                    rotator.mark_error(key)
+                except Exception as e:
+                    logger.warning(f"{provider_name} image generation failed: {e}")
+                    rotator.mark_error(key)
+
         return await self._placeholder_image(prompt, width, height, output_path)
 
     async def _fal_generate_image(
@@ -207,6 +215,69 @@ class MediaGenerationService:
 
         return {"success": False, "error": "replicate_timeout"}
 
+    async def _stability_generate_image(
+        self,
+        prompt: str,
+        negative_prompt: Optional[str],
+        width: int,
+        height: int,
+        model: str,
+        output_path: str,
+        api_key: str,
+    ) -> Dict[str, Any]:
+        """Call Stability AI direct API for image generation with provided key."""
+        endpoint = "stable-diffusion-xl" if model == "sdxl" else "stable-diffusion-3"
+        url = f"{settings.STABILITY_API_URL}/v1/generation/{endpoint}/text-to-image"
+
+        payload = {
+            "text_prompts": [{"text": prompt, "weight": 1.0}],
+            "cfg_scale": 7.5,
+            "width": width,
+            "height": height,
+            "samples": 1,
+            "steps": 30,
+        }
+        if negative_prompt:
+            payload["text_prompts"].append({"text": negative_prompt, "weight": -1.0})
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "image/png",
+        }
+
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code == 429:
+                media_key_vault.stability.mark_rate_limited(api_key, float(resp.headers.get("retry-after", 60)))
+                return {"success": False, "error": f"stability_rate_limited_{resp.status_code}"}
+            if resp.status_code == 401:
+                media_key_vault.stability.mark_error(api_key)
+                return {"success": False, "error": "stability_auth_failed"}
+            if resp.status_code != 200:
+                media_key_vault.stability.mark_error(api_key)
+                return {"success": False, "error": f"stability_http_{resp.status_code}"}
+
+            data = resp.json()
+            image_b64 = data.get("artifacts", [{}])[0].get("base64")
+            if not image_b64:
+                return {"success": False, "error": "no_image_data"}
+
+            import base64
+            with open(output_path, "wb") as f:
+                f.write(base64.b64decode(image_b64))
+            media_key_vault.stability.mark_success(api_key)
+            return {
+                "success": True,
+                "path": output_path,
+                "engine": "stability_ai",
+                "model": model,
+                "width": width,
+                "height": height,
+            }
+
+        return {"success": False, "error": "stability_download_failed"}
+
     async def _placeholder_image(
         self,
         prompt: str,
@@ -273,49 +344,52 @@ class MediaGenerationService:
     ) -> Dict[str, Any]:
         """
         Generate a video clip using multi-key rotation with automatic failover.
-        Provider chain: Kling → Runway → fal.ai video.
+        Provider chain from registry: fal_ai → runway → kling → luma → pika → hailuo → replicate.
         10-second timeout per call. Falls back to placeholder if all fail.
         """
         if output_path is None:
             job_id = os.urandom(8).hex()
             output_path = str(self._output_dir / f"vid_{job_id}.mp4")
 
-        providers = [
-            ("kling", lambda: self._kling_generate_video(prompt, duration_seconds, width, height, output_path)),
-            ("runway", lambda: self._runway_generate_video(prompt, duration_seconds, width, height, output_path)),
-            ("fal_video", lambda: self._fal_generate_video(prompt, duration_seconds, width, height, output_path)),
-        ]
-
+        chain = media_provider_registry.get_failover_chain("video")
         if engine == "runway":
-            providers = [
-                ("runway", lambda: self._runway_generate_video(prompt, duration_seconds, width, height, output_path)),
-                ("kling", lambda: self._kling_generate_video(prompt, duration_seconds, width, height, output_path)),
-                ("fal_video", lambda: self._fal_generate_video(prompt, duration_seconds, width, height, output_path)),
-            ]
+            chain = ["runway"] + [p for p in chain if p != "runway"]
 
-        for provider_name, provider_fn in providers:
-            rotator = (
-                media_key_vault.kling if provider_name == "kling"
-                else media_key_vault.runway if provider_name == "runway"
-                else media_key_vault.fal
-            )
-            for _ in range(rotator.total_keys or 1):
+        provider_map = {
+            "fal_ai": lambda k: self._fal_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "runway": lambda k: self._runway_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "kling": lambda k: self._kling_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "luma": lambda k: self._luma_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "pika": lambda k: self._pika_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "hailuo": lambda k: self._hailuo_generate_video(prompt, duration_seconds, width, height, output_path, k),
+            "replicate": lambda k: self._replicate_generate_video(prompt, duration_seconds, width, height, output_path, k),
+        }
+
+        for provider_name in chain:
+            rotator = getattr(media_key_vault, provider_name, None)
+            if not rotator:
+                continue
+            keys = rotator._keys if hasattr(rotator, "_keys") else []
+            if not keys:
+                continue
+            provider_fn = provider_map.get(provider_name)
+            if not provider_fn:
+                continue
+            for _ in keys:
                 key = rotator.get_active_key()
-                if not key and provider_name != "kling":  # kling/runway always have at least one key attempt
+                if not key:
                     break
                 try:
-                    result = await asyncio.wait_for(provider_fn(key) if key else provider_fn(), timeout=DEFAULT_TIMEOUT)
+                    result = await asyncio.wait_for(provider_fn(key), timeout=DEFAULT_TIMEOUT)
                     if result.get("success"):
                         result["provider"] = provider_name
                         return result
                 except asyncio.TimeoutError:
                     logger.warning(f"{provider_name} video timed out after {DEFAULT_TIMEOUT}s")
-                    if key:
-                        rotator.mark_error(key)
+                    rotator.mark_error(key)
                 except Exception as e:
                     logger.warning(f"{provider_name} video generation failed: {e}")
-                    if key:
-                        rotator.mark_error(key)
+                    rotator.mark_error(key)
 
         return await self._placeholder_video(prompt, duration_seconds, width, height, output_path)
 
@@ -497,6 +571,248 @@ class MediaGenerationService:
                 return {"success": True, "path": output_path, "engine": "fal_video", "duration": duration_seconds}
 
         return {"success": False, "error": "fal_video_download_failed"}
+
+    async def _luma_generate_video(
+        self,
+        prompt: str,
+        duration_seconds: int,
+        width: int,
+        height: int,
+        output_path: str,
+        api_key: str = None,
+    ) -> Dict[str, Any]:
+        """Call Luma Dream Machine API for video generation with multi-key support."""
+        api_key = api_key or settings.LUMA_API_KEY
+        if not api_key:
+            return {"success": False, "error": "no_luma_key"}
+
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            resp = await client.post(
+                f"{settings.LUMA_API_URL}/v1/generations",
+                json={"prompt": prompt, "aspect_ratio": "16:9"},
+                headers=headers,
+            )
+            if resp.status_code == 429:
+                media_key_vault.luma.mark_rate_limited(api_key, float(resp.headers.get("retry-after", 60)))
+                return {"success": False, "error": f"luma_rate_limited_{resp.status_code}"}
+            if resp.status_code == 401:
+                media_key_vault.luma.mark_error(api_key)
+                return {"success": False, "error": "luma_auth_failed"}
+            if resp.status_code != 200:
+                media_key_vault.luma.mark_error(api_key)
+                return {"success": False, "error": f"luma_http_{resp.status_code}"}
+
+            data = resp.json()
+            generation_id = data.get("id")
+            if not generation_id:
+                return {"success": False, "error": "no_luma_generation_id"}
+
+            for _ in range(60):
+                await asyncio.sleep(5)
+                status_resp = await client.get(
+                    f"{settings.LUMA_API_URL}/v1/generations/{generation_id}",
+                    headers=headers,
+                )
+                if status_resp.status_code == 429:
+                    media_key_vault.luma.mark_rate_limited(api_key)
+                    return {"success": False, "error": "luma_rate_limited"}
+                if status_resp.status_code == 200:
+                    status_data = status_resp.json()
+                    if status_data.get("state") == "completed":
+                        video_url = status_data.get("assets", {}).get("video")
+                        if video_url:
+                            video_resp = await client.get(video_url, timeout=DEFAULT_TIMEOUT)
+                            if video_resp.status_code == 200:
+                                with open(output_path, "wb") as f:
+                                    f.write(video_resp.content)
+                                media_key_vault.luma.mark_success(api_key)
+                                return {"success": True, "path": output_path, "engine": "luma", "duration": duration_seconds}
+                    elif status_data.get("state") == "failed":
+                        media_key_vault.luma.mark_error(api_key)
+                        return {"success": False, "error": "luma_task_failed"}
+
+        return {"success": False, "error": "luma_timeout"}
+
+    async def _pika_generate_video(
+        self,
+        prompt: str,
+        duration_seconds: int,
+        width: int,
+        height: int,
+        output_path: str,
+        api_key: str = None,
+    ) -> Dict[str, Any]:
+        """Call Pika API for video generation with multi-key support."""
+        api_key = api_key or settings.PIKA_API_KEY
+        if not api_key:
+            return {"success": False, "error": "no_pika_key"}
+
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            resp = await client.post(
+                f"{settings.PIKA_API_URL}/v1/videos",
+                json={"prompt": prompt, "duration": duration_seconds},
+                headers=headers,
+            )
+            if resp.status_code == 429:
+                media_key_vault.pika.mark_rate_limited(api_key, float(resp.headers.get("retry-after", 60)))
+                return {"success": False, "error": f"pika_rate_limited_{resp.status_code}"}
+            if resp.status_code == 401:
+                media_key_vault.pika.mark_error(api_key)
+                return {"success": False, "error": "pika_auth_failed"}
+            if resp.status_code != 200:
+                media_key_vault.pika.mark_error(api_key)
+                return {"success": False, "error": f"pika_http_{resp.status_code}"}
+
+            data = resp.json()
+            video_id = data.get("id")
+            if not video_id:
+                return {"success": False, "error": "no_pika_video_id"}
+
+            for _ in range(60):
+                await asyncio.sleep(5)
+                status_resp = await client.get(
+                    f"{settings.PIKA_API_URL}/v1/videos/{video_id}",
+                    headers=headers,
+                )
+                if status_resp.status_code == 429:
+                    media_key_vault.pika.mark_rate_limited(api_key)
+                    return {"success": False, "error": "pika_rate_limited"}
+                if status_resp.status_code == 200:
+                    status_data = status_resp.json()
+                    if status_data.get("status") == "completed":
+                        video_url = status_data.get("video_url") or status_data.get("url")
+                        if video_url:
+                            video_resp = await client.get(video_url, timeout=DEFAULT_TIMEOUT)
+                            if video_resp.status_code == 200:
+                                with open(output_path, "wb") as f:
+                                    f.write(video_resp.content)
+                                media_key_vault.pika.mark_success(api_key)
+                                return {"success": True, "path": output_path, "engine": "pika", "duration": duration_seconds}
+                    elif status_data.get("status") == "failed":
+                        media_key_vault.pika.mark_error(api_key)
+                        return {"success": False, "error": "pika_task_failed"}
+
+        return {"success": False, "error": "pika_timeout"}
+
+    async def _hailuo_generate_video(
+        self,
+        prompt: str,
+        duration_seconds: int,
+        width: int,
+        height: int,
+        output_path: str,
+        api_key: str = None,
+    ) -> Dict[str, Any]:
+        """Call Hailuo MiniMax API for video generation with multi-key support."""
+        api_key = api_key or settings.HAILUO_API_KEY
+        if not api_key:
+            return {"success": False, "error": "no_hailuo_key"}
+
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            resp = await client.post(
+                f"{settings.HAILUO_API_URL}/v1/video_generations",
+                json={"prompt": prompt, "duration": duration_seconds},
+                headers=headers,
+            )
+            if resp.status_code == 429:
+                media_key_vault.hailuo.mark_rate_limited(api_key, float(resp.headers.get("retry-after", 60)))
+                return {"success": False, "error": f"hailuo_rate_limited_{resp.status_code}"}
+            if resp.status_code == 401:
+                media_key_vault.hailuo.mark_error(api_key)
+                return {"success": False, "error": "hailuo_auth_failed"}
+            if resp.status_code != 200:
+                media_key_vault.hailuo.mark_error(api_key)
+                return {"success": False, "error": f"hailuo_http_{resp.status_code}"}
+
+            data = resp.json()
+            task_id = data.get("id") or data.get("task_id")
+            if not task_id:
+                return {"success": False, "error": "no_hailuo_task_id"}
+
+            for _ in range(60):
+                await asyncio.sleep(5)
+                status_resp = await client.get(
+                    f"{settings.HAILUO_API_URL}/v1/video_generations/{task_id}",
+                    headers=headers,
+                )
+                if status_resp.status_code == 429:
+                    media_key_vault.hailuo.mark_rate_limited(api_key)
+                    return {"success": False, "error": "hailuo_rate_limited"}
+                if status_resp.status_code == 200:
+                    status_data = status_resp.json()
+                    if status_data.get("status") == "completed":
+                        video_url = status_data.get("video_url") or status_data.get("url")
+                        if video_url:
+                            video_resp = await client.get(video_url, timeout=DEFAULT_TIMEOUT)
+                            if video_resp.status_code == 200:
+                                with open(output_path, "wb") as f:
+                                    f.write(video_resp.content)
+                                media_key_vault.hailuo.mark_success(api_key)
+                                return {"success": True, "path": output_path, "engine": "hailuo", "duration": duration_seconds}
+                    elif status_data.get("status") == "failed":
+                        media_key_vault.hailuo.mark_error(api_key)
+                        return {"success": False, "error": "hailuo_task_failed"}
+
+        return {"success": False, "error": "hailuo_timeout"}
+
+    async def _replicate_generate_video(
+        self,
+        prompt: str,
+        duration_seconds: int,
+        width: int,
+        height: int,
+        output_path: str,
+        api_key: str = None,
+    ) -> Dict[str, Any]:
+        """Call Replicate API for video generation with multi-key support."""
+        api_key = api_key or settings.REPLICATE_API_KEY
+        if not api_key:
+            return {"success": False, "error": "no_replicate_key"}
+
+        headers = {"Authorization": f"Token {api_key}", "Content-Type": "application/json"}
+        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
+            start_resp = await client.post(
+                f"{settings.REPLICATE_API_URL}/predictions",
+                json={"version": "gen2", "input": {"prompt": prompt, "duration": duration_seconds}},
+                headers=headers,
+            )
+            if start_resp.status_code == 429:
+                media_key_vault.replicate.mark_rate_limited(api_key, float(start_resp.headers.get("retry-after", 60)))
+                return {"success": False, "error": "replicate_rate_limited"}
+            if start_resp.status_code != 201 and start_resp.status_code != 200:
+                media_key_vault.replicate.mark_error(api_key)
+                return {"success": False, "error": f"replicate_http_{start_resp.status_code}"}
+
+            prediction = start_resp.json()
+            for _ in range(60):
+                await asyncio.sleep(2)
+                poll_resp = await client.get(
+                    f"{settings.REPLICATE_API_URL}/predictions/{prediction['id']}",
+                    headers=headers,
+                )
+                if poll_resp.status_code == 429:
+                    media_key_vault.replicate.mark_rate_limited(api_key)
+                    return {"success": False, "error": "replicate_rate_limited"}
+                data = poll_resp.json()
+                if data.get("status") == "succeeded":
+                    output_url = data.get("output")
+                    if isinstance(output_url, list):
+                        output_url = output_url[0]
+                    if output_url:
+                        video_resp = await client.get(output_url, timeout=DEFAULT_TIMEOUT)
+                        if video_resp.status_code == 200:
+                            with open(output_path, "wb") as f:
+                                f.write(video_resp.content)
+                            media_key_vault.replicate.mark_success(api_key)
+                            return {"success": True, "path": output_path, "engine": "replicate", "duration": duration_seconds}
+                elif data.get("status") == "failed":
+                    media_key_vault.replicate.mark_error(api_key)
+                    return {"success": False, "error": "replicate_task_failed"}
+
+        return {"success": False, "error": "replicate_timeout"}
 
     async def _placeholder_video(
         self,

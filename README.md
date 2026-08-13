@@ -1,50 +1,54 @@
-# Professional AI (PRO AI)
+# 🚀 Professional AI — The World's Most Powerful All-in-One AI
 
-**World's most powerful all-in-one AI assistant.** Code generation, cybersecurity analysis, bug fixing, expert guidance, image generation, voice interaction, document analysis, and 15+ advanced AI capabilities — all in one production-ready, self-hosted SaaS platform.
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104%2B-green)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-14%2B-black)](https://nextjs.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-blue)](https://postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-7%2B-red)](https://redis.io)
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue)](https://docker.com)
+[![License](https://img.shields.io/badge/License-Proprietary-red)](https://github.com/MrProfessionalHacker313/professional-ai)
 
-[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai) · [📖 Documentation](docs/API.md)
+[![Open Professional AI](https://img.shields.io/badge/🌐_Open_Professional_AI-100000?style=for-the-badge&logo=google-chrome&logoColor=white&labelColor=1a73e8&color=4285f4)](https://violation-recreational-barnes-year.trycloudflare.com)
+[![Star on GitHub](https://img.shields.io/badge/⭐_Star_on_GitHub-100000?style=for-the-badge&logo=github&logoColor=white&labelColor=333&color=24292e)](https://github.com/MrProfessionalHacker313/professional-ai)
+[![Documentation](https://img.shields.io/badge/📖_Documentation-100000?style=for-the-badge&logo=read-the-docs&logoColor=white&labelColor=383838&color=3f3f3f)](docs/API.md)
 
 ---
 
 ## 🎯 What is Professional AI?
 
-Professional AI is a **complete, self-hosted AI platform** that brings together 20+ powerful AI capabilities in one place. Unlike cloud AI services that charge per request and store your data, Professional AI runs entirely on YOUR infrastructure — giving you **unlimited usage, complete privacy, and full control**.
+**Professional AI (PRO AI)** is a revolutionary, production-ready, self-hosted AI platform that brings together **20+ powerful AI capabilities** in one place. Unlike cloud services that charge per request and store your data, Professional AI runs entirely on your infrastructure — giving you **unlimited usage, complete privacy, and full control**.
 
 ### Why Choose Professional AI?
 
-✅ **Unlimited Usage** — Run 24/7 without per-request costs
-✅ **Complete Privacy** — All data stays on your server
-✅ **No Subscriptions** — One-time setup, free forever
-✅ **Multi-Model** — 7+ LLMs working together
-✅ **Self-Hosted** — No vendor lock-in, full control
-✅ **Production-Ready** — Enterprise-grade security & scalability
+| Feature | Professional AI | ChatGPT | Gemini |
+|---------|----------------|---------|--------|
+| Code in 40+ languages | ✅ | ✅ | ✅ |
+| 8K Video Generation | ✅ | ❌ | ❌ |
+| Voice Cloning | ✅ | ❌ | ❌ |
+| Offline Mode | ✅ | ❌ | ❌ |
+| RAT / Red-Team Tools | ✅ | ❌ | ❌ |
+| 40+ Languages | ✅ | Limited | Limited |
+| AI Agents | ✅ | ✅ | Limited |
+| Self-Hosted | ✅ | ❌ | ❌ |
 
 ---
 
 ## ⚡ Quick Access
 
-### 🌐 Open Professional AI
+### 🌐 Open Professional AI Now
 
-**If already running locally:**
+**👉 Click here to open Professional AI directly:**
+
+**[https://violation-recreational-barnes-year.trycloudflare.com](https://violation-recreational-barnes-year.trycloudflare.com)**
+
+> ⚠️ **Note:** This public link is active while the tunnel is running. For permanent hosting, deploy with Docker or connect a custom domain.
+
+**If running locally:**
 ```
 👉 http://localhost:8000
 ```
 
-**To start Professional AI:**
-```bash
-# Navigate to the project folder
-cd "C:\Users\GrafiX\Desktop\professional-ai"
-
-# Start all services with Docker
-docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:8000
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/api/docs
-```
-
-**To clone and run from scratch:**
+**To start Professional AI locally:**
 ```bash
 git clone https://github.com/MrProfessionalHacker313/professional-ai.git
 cd professional-ai
@@ -53,14 +57,14 @@ docker-compose up -d
 
 ---
 
-## 🚀 Ultra-Powerful Features — Complete Usage Guide
+## 🚀 Ultra-Powerful Features
 
-### 1. 🤖 Multi-Model AI Chat (Text AI)
+### 1. 🤖 Multi-Model AI Chat
 **Professional-grade conversational AI with multi-provider intelligence.**
 
 **Models Supported:**
-- Llama 3.1 70B (Meta) — Best for reasoning, coding, and complex tasks
-- Qwen 2.5 72B (Alibaba) — Excellent for multilingual and document understanding
+- Llama 3.1 70B — Best for reasoning, coding, and complex tasks
+- Qwen 2.5 72B — Excellent for multilingual and document understanding
 - DeepSeek R1 — Specialized for code, math, and logical reasoning
 - Mistral — Fast, efficient for general-purpose tasks
 - Gemini 2.5 Pro (Google) — Advanced multimodal understanding
@@ -101,12 +105,6 @@ docker-compose up -d
 4. Get step-by-step remediation instructions
 5. Receive secure code alternatives
 
-**Example Queries:**
-- "Analyze this login form for SQL injection vulnerabilities"
-- "Review this API endpoint for security flaws"
-- "How do I secure my Node.js application against XSS?"
-- "Penetration testing methodology for a web application"
-
 ---
 
 ### 3. 🐛 Intelligent Bug Fixer
@@ -127,19 +125,6 @@ docker-compose up -d
 3. AI identifies the root cause
 4. Receive complete corrected code with explanations
 5. Get before/after comparison and best practices
-
-**Example:**
-```python
-# Paste this:
-def calculate_average(numbers):
-    total = 0
-    for num in numbers:
-        total += num
-    return total / len(numbers)
-
-# AI detects: Division by zero risk when numbers is empty
-# AI provides: Complete fixed version with error handling
-```
 
 ---
 
@@ -191,12 +176,6 @@ def calculate_average(numbers):
    - **Analyze** — Comprehensive analysis with insights
 4. View results with highlighted text regions
 
-**Use Cases:**
-- Extract text from scanned documents
-- Analyze UI/UX screenshots for design feedback
-- Read text from photos (street signs, menus, documents)
-- Understand complex diagrams and charts
-
 ---
 
 ### 6. 🎙️ Voice Input (Speech-to-Text)
@@ -217,12 +196,6 @@ def calculate_average(numbers):
 4. Text appears in the chat input
 5. Edit if needed, then send
 
-**Pro Tips:**
-- Speak clearly at a moderate pace for best accuracy
-- Use in noisy environments with a good microphone
-- Supports continuous conversation mode
-- Text fallback available when audio is unavailable
-
 ---
 
 ### 7. 🔊 Voice Output (Text-to-Speech)
@@ -237,12 +210,6 @@ def calculate_average(numbers):
 2. AI responses are automatically spoken
 3. Click the speaker icon on any message to replay
 4. Adjust speed and voice in settings
-
-**Features:**
-- 30+ natural voices across languages
-- Adjustable speaking rate
-- Pause/resume functionality
-- Works offline with Piper TTS
 
 ---
 
@@ -292,13 +259,6 @@ And 50+ more languages
 - "Create a React component for a login form"
 - "Generate a REST API with FastAPI and PostgreSQL"
 
-**Features:**
-- Syntax highlighting in responses
-- Complete, runnable code examples
-- Error handling and edge cases covered
-- Test cases included
-- Performance optimization tips
-
 ---
 
 ### 10. 📄 Document Analyzer
@@ -322,12 +282,6 @@ And 50+ more languages
    - Counts words and pages
 4. Ask questions about the document content
 
-**Use Cases:**
-- Summarize research papers
-- Extract key points from contracts
-- Analyze reports and presentations
-- Convert PDFs to structured data
-
 ---
 
 ### 11. 🌐 AI-Powered Web Search
@@ -343,13 +297,6 @@ And 50+ more languages
 3. AI performs live web search
 4. Results are summarized with key insights
 5. Sources are cited for verification
-
-**Features:**
-- Real-time internet access
-- AI-powered result filtering and summarization
-- Source credibility scoring
-- Multi-source aggregation
-- No tracking or data collection (with SearXNG)
 
 ---
 
@@ -370,12 +317,6 @@ And 50+ more languages
 4. View all memories in the vault dashboard
 5. Search, edit, or delete memories
 
-**Memory Types:**
-- **Preferences** — Coding style, language preferences, tools
-- **Projects** — Current projects, deadlines, tech stacks
-- **Context** — Personal info, work details, goals
-- **Skills** — Your expertise areas, learning goals
-
 ---
 
 ### 13. 🔀 Smart Model Router
@@ -388,21 +329,15 @@ And 50+ more languages
    - Documents → Qwen 2.5 72B
    - Creative writing → Claude 3 or GPT-4o
    - Fast responses → Mistral or Groq
-3. Routes to the optimal model
-4. Falls back if the primary model is unavailable
-
-**Manual Override:**
-- Always select a specific model if preferred
-- Router suggestions appear in the UI
-- Performance tracking shows which models work best for you
+3. Routes to the optimal provider automatically
 
 ---
 
 ### 14. 🤖 AI Agents
-**Autonomous AI agents for complex multi-step tasks.**
+**Automate complex tasks with intelligent agents.**
 
 **Agent Types:**
-- **Research Agent** — Deep web research with report generation
+- **Research Agent** — Web research and report generation
 - **Writing Agent** — Articles, blogs, emails, documentation
 - **Coding Agent** — Full project development and debugging
 - **Analysis Agent** — Data analysis and insights
@@ -414,19 +349,6 @@ And 50+ more languages
 3. Define the task and system prompt
 4. Agent executes multi-step reasoning
 5. View execution logs and results
-6. Track success rates and performance
-
-**Example:**
-```
-Agent: Research Agent
-Task: "Research the latest AI trends in 2026 and write a summary report"
-Steps:
-1. Search web for "AI trends 2026"
-2. Analyze top 10 results
-3. Extract key insights
-4. Write structured report
-5. Format with markdown
-```
 
 ---
 
@@ -447,22 +369,6 @@ Steps:
 5. Generates clean, semantic code
 6. Download or copy the code
 
-**Options:**
-- **Framework:** HTML/CSS, React, Vue, Flutter
-- **Styling:** Tailwind CSS, plain CSS, styled-components
-- **Include API:** Generate backend API endpoints
-- **Include Auth:** Add authentication flow
-
-**Example:**
-```
-Input: Screenshot of a dashboard
-Output: Complete React + Tailwind CSS dashboard with:
-- Responsive sidebar navigation
-- Data tables with sorting
-- Charts and graphs
-- User profile section
-```
-
 ---
 
 ### 16. 💬 Chatbot Builder
@@ -476,12 +382,6 @@ Output: Complete React + Tailwind CSS dashboard with:
 5. Deploy chatbot with unique link
 6. Share publicly or keep private
 
-**Use Cases:**
-- Customer support bot for your business
-- Personal assistant with custom knowledge
-- Educational tutor for specific subjects
-- Sales bot for product recommendations
-
 ---
 
 ### 17. 🔄 Chat History & Conversations
@@ -494,19 +394,6 @@ Output: Complete React + Tailwind CSS dashboard with:
 - Message editing and regeneration
 - Thumbs up/down feedback on responses
 - Conversation organization and management
-
-**How to Use:**
-1. Click the sidebar to view conversation history
-2. Click "+" to start a new conversation
-3. Click on any conversation to resume
-4. Hover over messages for edit/regenerate options
-5. Use search to find specific conversations
-
-**Admin Features:**
-- View all user conversations (admin only)
-- Search across all conversations
-- Delete inappropriate content
-- Monitor usage patterns
 
 ---
 
@@ -534,12 +421,6 @@ Output: Complete React + Tailwind CSS dashboard with:
 - Background sync
 - Fast loading with service workers
 - Responsive design for all screen sizes
-
-**How to Install:**
-1. Visit the app in Chrome/Edge/Safari
-2. Click the install icon in the address bar
-3. App installs like a native application
-4. Launch from desktop or home screen
 
 ---
 
@@ -1107,7 +988,7 @@ curl http://localhost:8001/health  # Whisper
 - [x] Image generation (Stable Diffusion XL, Flux)
 - [x] Image analysis & OCR
 - [x] Voice input (30+ languages)
-- [x] Voice output ( Piper TTS, Edge TTS)
+- [x] Voice output (Piper TTS, Edge TTS)
 - [x] Video transcription
 - [x] Code explainer & generator
 - [x] Document analyzer (PDF, DOCX, TXT)
@@ -1142,6 +1023,8 @@ curl http://localhost:8001/health  # Whisper
 
 Proprietary. All rights reserved.
 
+---
+
 ## 👨‍💻 Support
 
 For issues or questions:
@@ -1175,6 +1058,11 @@ docker-compose up -d
 **🎉 Your AI is now running at:**
 ```
 👉 http://localhost:8000
+```
+
+**Public Access:**
+```
+👉 https://violation-recreational-barnes-year.trycloudflare.com
 ```
 
 **Other useful URLs:**
@@ -1238,4 +1126,4 @@ Use the hardened Nginx reverse proxy in `deploy/nginx.conf`:
 
 **Built with ❤️ — World's Most Powerful All-in-One AI Assistant**
 
-[🚀 Open Professional AI](http://localhost:8000) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)
+[🚀 Open Professional AI](https://violation-recreational-barnes-year.trycloudflare.com) · [⭐ Star on GitHub](https://github.com/MrProfessionalHacker313/professional-ai)

@@ -4,6 +4,26 @@
 -- ===================================================================
 
 -- ===================================================================
+-- USER MODULE ACCESS
+-- ===================================================================
+CREATE TABLE user_module_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    module_id VARCHAR(50) NOT NULL,
+    module_name VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    granted_by UUID REFERENCES users(id),
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, module_id)
+);
+
+CREATE INDEX idx_user_module_access_user ON user_module_access(user_id);
+CREATE INDEX idx_user_module_access_module ON user_module_access(module_id);
+
+-- ===================================================================
 -- AI MEMORIES (Long-term user memory)
 -- ===================================================================
 CREATE TABLE ai_memories (

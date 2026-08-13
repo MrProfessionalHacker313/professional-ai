@@ -18,9 +18,10 @@ interface CreditInfo {
 interface CreditMeterProps {
   showDetails?: boolean
   onUpgradeClick?: () => void
+  isOwner?: boolean
 }
 
-export default function CreditMeter({ showDetails = true, onUpgradeClick }: CreditMeterProps) {
+export default function CreditMeter({ showDetails = true, onUpgradeClick, isOwner = false }: CreditMeterProps) {
   const [creditInfo, setCreditInfo] = useState<CreditInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -102,17 +103,18 @@ export default function CreditMeter({ showDetails = true, onUpgradeClick }: Cred
         </div>
         <div className="text-right">
           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+            isOwner ? 'bg-green-500/20 text-green-400' :
             isFreePlan ? 'bg-gray-700 text-gray-300' :
             isTrial ? 'bg-blue-500/20 text-blue-400' :
             'bg-purple-500/20 text-purple-400'
           }`}>
-            {isFreePlan ? 'FREE PLAN' : isTrial ? 'TRIAL' : 'PRO PLAN'}
+            {isOwner ? 'OWNER - UNLIMITED' : isFreePlan ? 'FREE PLAN' : isTrial ? 'TRIAL' : 'PRO PLAN'}
           </span>
         </div>
       </div>
 
       {/* Progress Bar (only for Pro/Trial) */}
-      {!isFreePlan && (
+      {!isFreePlan && !isOwner && (
         <div className="mb-4">
           <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
             <motion.div
@@ -124,13 +126,13 @@ export default function CreditMeter({ showDetails = true, onUpgradeClick }: Cred
           </div>
           <div className="flex justify-between mt-1 text-xs text-gray-400">
             <span>0</span>
-            <span>{maxCredits.toLocaleString()}</span>
+            <span>{(maxCredits || 0).toLocaleString()}</span>
           </div>
         </div>
       )}
 
       {/* Details */}
-      {showDetails && (
+      {showDetails && !isOwner && (
         <div className="space-y-2">
           {isFreePlan ? (
             <div className="bg-gray-800/50 rounded-lg p-4">
@@ -154,11 +156,11 @@ export default function CreditMeter({ showDetails = true, onUpgradeClick }: Cred
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <p className="text-gray-400 text-xs mb-1">Total Granted</p>
-                <p className="text-white font-medium">{creditInfo.total_granted.toLocaleString()}</p>
+                 <p className="text-white font-medium">{(creditInfo.total_granted || 0).toLocaleString()}</p>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-3">
                 <p className="text-gray-400 text-xs mb-1">Total Consumed</p>
-                <p className="text-white font-medium">{creditInfo.total_consumed.toLocaleString()}</p>
+                 <p className="text-white font-medium">{(creditInfo.total_consumed || 0).toLocaleString()}</p>
               </div>
               {creditInfo.next_reset_at && (
                 <div className="bg-gray-800/50 rounded-lg p-3 col-span-2">
@@ -178,7 +180,7 @@ export default function CreditMeter({ showDetails = true, onUpgradeClick }: Cred
           )}
 
           {/* Low Credits Warning */}
-          {!isFreePlan && percentage < 20 && (
+          {!isFreePlan && !isOwner && percentage < 20 && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -200,7 +202,7 @@ export default function CreditMeter({ showDetails = true, onUpgradeClick }: Cred
           )}
 
           {/* Trial Ending Soon Warning */}
-          {isTrial && creditInfo.next_reset_at && (
+          {!isOwner && isTrial && creditInfo.next_reset_at && (
             <TrialEndingWarning trialEnd={creditInfo.next_reset_at} onUpgrade={onUpgradeClick} />
           )}
         </div>

@@ -183,7 +183,7 @@ export default function MemoryVaultPanel({ onClose }: MemoryVaultPanelProps) {
                 <p className="text-xs text-gray-300 truncate">{JSON.stringify(memory.value)}</p>
                 <div className="flex items-center gap-1 text-[10px] text-gray-500 mt-1">
                   <Clock className="w-3 h-3" />
-                  {new Date(memory.created_at).toLocaleString()}
+                   {memory.created_at ? new Date(memory.created_at).toLocaleString() : '-'}
                 </div>
               </div>
             ))}

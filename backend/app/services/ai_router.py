@@ -4,14 +4,21 @@ Multi-layer provider chain with automatic failover, key rotation, and
 on-device local fallback. The system NEVER stops and NEVER expires.
 
 Provider chain (AI_PROVIDER=auto):
-  Layer 1: Gemini  (gemini-2.0-flash) - free tier, key rotation
-  Layer 2: Groq    (llama-3.3-70b-versatile) - free tier, key rotation
-  Layer 3: OpenRouter (deepseek / qwen2.5-coder) - free models, key rotation
-  Layer 4: Local ONNX / knowledge engine (on-device, ZERO cost, NEVER expires)
+  Layer 1: OpenAI    (gpt-4o-mini) - cost-effective, key rotation
+  Layer 2: Anthropic (claude-sonnet-4-20250514) - high quality, key rotation
+  Layer 3: Gemini    (gemini-2.0-flash) - free tier, key rotation
+  Layer 4: Groq      (llama-3.3-70b-versatile) - free tier, key rotation
+  Layer 5: DeepSeek  (deepseek-chat) - cost-effective, key rotation
+  Layer 6: Mistral   (mistral-small-latest) - cost-effective, key rotation
+  Layer 7: OpenRouter (deepseek / qwen2.5-coder) - free models, key rotation
+  Layer 8: Together  (meta-llama/Llama-3.3-70B-Instruct-Turbo) - cost-effective, key rotation
+  Layer 9: xAI       (grok-beta) - cost-effective, key rotation
+  Layer 10: Stability (stable-diffusion-xl) - image generation, key rotation
+  Layer 11: Local ONNX / knowledge engine (on-device, ZERO cost, NEVER expires)
 
 Routing:
   - Each provider has a 20-second timeout → fail → next provider
-  - Multiple keys per provider: GEMINI_KEYS=key1,key2,key3
+  - Multiple keys per provider: OPENAI_KEYS=key1,key2,key3
     System uses key1; when rate-limited, switches to key2, key3, then next provider.
   - If ALL cloud fail → local model answers. User never sees an error.
   - Requests queue during momentary outages (max 5 seconds) → auto-resume.
@@ -33,14 +40,22 @@ from app.services.offline_cache import offline_cache
 from app.services.vault_logger import vault_logger
 from app.services.local_fallback import local_fallback_engine
 from app.services.cache_service import cache_service
+from app.services.ai_providers_config import AI_PROVIDERS_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class ModelProvider(Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
     GEMINI = "gemini"
     GROQ = "groq"
+    DEEPSEEK = "deepseek"
+    MISTRAL = "mistral"
     OPENROUTER = "openrouter"
+    TOGETHER = "together"
+    XAI = "xai"
+    STABILITY = "stability"
     OLLAMA = "ollama"
     LOCAL = "local"
 
@@ -172,6 +187,20 @@ class PermanentVaultRouter:
         # Build the ordered provider list
         ordered_providers: List[Tuple[ModelProvider, List[ProviderKey], str, str]] = []
 
+        if mode in ("auto", "openai"):
+            ordered_providers.append((
+                ModelProvider.OPENAI,
+                self._parse_keys(settings.OPENAI_API_KEY, settings.OPENAI_KEYS),
+                settings.OPENAI_CHAT_MODEL,
+                settings.OPENAI_CODE_MODEL,
+            ))
+        if mode in ("auto", "anthropic"):
+            ordered_providers.append((
+                ModelProvider.ANTHROPIC,
+                self._parse_keys(settings.ANTHROPIC_API_KEY, settings.ANTHROPIC_KEYS),
+                settings.ANTHROPIC_CHAT_MODEL,
+                settings.ANTHROPIC_CODE_MODEL,
+            ))
         if mode in ("auto", "gemini"):
             ordered_providers.append((
                 ModelProvider.GEMINI,
@@ -186,12 +215,47 @@ class PermanentVaultRouter:
                 settings.GROQ_CHAT_MODEL,
                 settings.GROQ_CODE_MODEL,
             ))
+        if mode in ("auto", "deepseek"):
+            ordered_providers.append((
+                ModelProvider.DEEPSEEK,
+                self._parse_keys(settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_KEYS),
+                settings.DEEPSEEK_CHAT_MODEL,
+                settings.DEEPSEEK_CODE_MODEL,
+            ))
+        if mode in ("auto", "mistral"):
+            ordered_providers.append((
+                ModelProvider.MISTRAL,
+                self._parse_keys(settings.MISTRAL_API_KEY, settings.MISTRAL_KEYS),
+                settings.MISTRAL_CHAT_MODEL,
+                settings.MISTRAL_CODE_MODEL,
+            ))
         if mode in ("auto", "openrouter"):
             ordered_providers.append((
                 ModelProvider.OPENROUTER,
                 self._parse_keys(settings.OPENROUTER_API_KEY, settings.OPENROUTER_KEYS),
                 settings.OPENROUTER_CHAT_MODEL,
                 settings.OPENROUTER_CODE_MODEL,
+            ))
+        if mode in ("auto", "together"):
+            ordered_providers.append((
+                ModelProvider.TOGETHER,
+                self._parse_keys(settings.TOGETHER_API_KEY, settings.TOGETHER_KEYS),
+                settings.TOGETHER_CHAT_MODEL,
+                settings.TOGETHER_CODE_MODEL,
+            ))
+        if mode in ("auto", "xai"):
+            ordered_providers.append((
+                ModelProvider.XAI,
+                self._parse_keys(settings.XAI_API_KEY, settings.XAI_KEYS),
+                settings.XAI_CHAT_MODEL,
+                settings.XAI_CODE_MODEL,
+            ))
+        if mode in ("auto", "stability"):
+            ordered_providers.append((
+                ModelProvider.STABILITY,
+                self._parse_keys(settings.STABILITY_API_KEY, settings.STABILITY_KEYS),
+                getattr(settings, "STABILITY_CHAT_MODEL", "stable-diffusion-xl"),
+                getattr(settings, "STABILITY_CODE_MODEL", "stable-diffusion-xl"),
             ))
 
         for provider, keys, chat_model, code_model in ordered_providers:
@@ -269,12 +333,26 @@ class PermanentVaultRouter:
             return False
 
     def _base_url_for(self, provider: ModelProvider) -> str:
+        if provider == ModelProvider.OPENAI:
+            return "https://api.openai.com/v1"
+        if provider == ModelProvider.ANTHROPIC:
+            return "https://api.anthropic.com/v1"
         if provider == ModelProvider.GEMINI:
             return "https://generativelanguage.googleapis.com/v1beta"
         if provider == ModelProvider.GROQ:
             return "https://api.groq.com/openai/v1"
+        if provider == ModelProvider.DEEPSEEK:
+            return "https://api.deepseek.com/v1"
+        if provider == ModelProvider.MISTRAL:
+            return "https://api.mistral.ai/v1"
         if provider == ModelProvider.OPENROUTER:
             return "https://openrouter.ai/api/v1"
+        if provider == ModelProvider.TOGETHER:
+            return "https://api.together.xyz/v1"
+        if provider == ModelProvider.XAI:
+            return "https://api.x.ai/v1"
+        if provider == ModelProvider.STABILITY:
+            return "https://api.stability.ai/v1"
         return settings.OLLAMA_BASE_URL
 
     async def close(self):
@@ -286,6 +364,23 @@ class PermanentVaultRouter:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
+
+    # ===================================================================
+    # Cost estimation
+    # ===================================================================
+
+    def _estimate_cost(self, provider_name: str, model: str, tokens: int) -> float:
+        """Estimate USD cost for a request based on provider pricing."""
+        try:
+            config = AI_PROVIDERS_CONFIG.get(provider_name, {})
+            input_cost_per_1k = config.get("cost_per_1k_input", 0.0)
+            output_cost_per_1k = config.get("cost_per_1k_output", 0.0)
+            # Rough estimate: assume 50% input / 50% output split
+            input_tokens = tokens * 0.5 if tokens > 0 else 0
+            output_tokens = tokens * 0.5 if tokens > 0 else 0
+            return (input_tokens * input_cost_per_1k + output_tokens * output_cost_per_1k) / 1000.0
+        except Exception:
+            return 0.0
 
     # ===================================================================
     # Public API
@@ -354,13 +449,20 @@ class PermanentVaultRouter:
                         provider.avg_response_time * 0.9 + (execution_time / 1000) * 0.1
                     )
 
+                    # Calculate cost per request
+                    cost_usd = self._estimate_cost(
+                        provider.provider.value,
+                        result.get("model", ""),
+                        result.get("tokens", 0),
+                    )
+
                     # Log the call
                     vault_logger.log_call(
                         provider=provider.provider.value,
                         model=result.get("model", ""),
                         latency_ms=execution_time,
                         success=True,
-                        cost_usd=0.0,
+                        cost_usd=cost_usd,
                         key_index=provider.current_key_index,
                     )
 
@@ -505,10 +607,24 @@ class PermanentVaultRouter:
 
         if provider.provider == ModelProvider.GEMINI:
             return await self._call_gemini(provider, prompt, system_prompt, model, timeout)
+        if provider.provider == ModelProvider.OPENAI:
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "openai")
+        if provider.provider == ModelProvider.ANTHROPIC:
+            return await self._call_anthropic(provider, prompt, system_prompt, model, timeout)
         if provider.provider == ModelProvider.GROQ:
-            return await self._call_groq(provider, prompt, system_prompt, model, timeout)
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "groq")
+        if provider.provider == ModelProvider.DEEPSEEK:
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "deepseek")
+        if provider.provider == ModelProvider.MISTRAL:
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "mistral")
         if provider.provider == ModelProvider.OPENROUTER:
-            return await self._call_openrouter(provider, prompt, system_prompt, model, timeout)
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "openrouter")
+        if provider.provider == ModelProvider.TOGETHER:
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "together")
+        if provider.provider == ModelProvider.XAI:
+            return await self._call_openai_compatible(provider, prompt, system_prompt, model, timeout, "xai")
+        if provider.provider == ModelProvider.STABILITY:
+            return await self._call_stability(provider, prompt, system_prompt, model, timeout)
         if provider.provider == ModelProvider.OLLAMA:
             return await self._call_ollama(provider, prompt, system_prompt, model, timeout)
 
@@ -558,15 +674,16 @@ class PermanentVaultRouter:
             "tokens": result.get("usageMetadata", {}).get("totalTokenCount", 0),
         }
 
-    async def _call_groq(
+    async def _call_openai_compatible(
         self,
         provider: ProviderConfig,
         prompt: str,
         system_prompt: Optional[str],
         model: str,
         timeout: float,
+        provider_name: str,
     ) -> Dict[str, Any]:
-        """Call Groq API (free tier, very fast) - optimized for speed."""
+        """Call an OpenAI-compatible /chat/completions endpoint."""
         url = f"{provider.base_url}/chat/completions"
         messages = []
         if system_prompt:
@@ -595,16 +712,16 @@ class PermanentVaultRouter:
         try:
             content = result["choices"][0]["message"]["content"]
         except (KeyError, IndexError):
-            raise RuntimeError(f"Groq returned unexpected response: {result}")
+            raise RuntimeError(f"{provider_name} returned unexpected response: {result}")
 
         return {
             "content": content,
             "model": model,
-            "provider": "groq",
+            "provider": provider_name,
             "tokens": result.get("usage", {}).get("total_tokens", 0),
         }
 
-    async def _call_openrouter(
+    async def _call_anthropic(
         self,
         provider: ProviderConfig,
         prompt: str,
@@ -612,43 +729,52 @@ class PermanentVaultRouter:
         model: str,
         timeout: float,
     ) -> Dict[str, Any]:
-        """Call OpenRouter API (free models) - optimized for speed."""
-        url = f"{provider.base_url}/chat/completions"
-        messages = []
+        """Call Anthropic Messages API."""
+        url = f"{provider.base_url}/messages"
+        payload: Dict[str, Any] = {
+            "model": model,
+            "max_tokens": settings.AI_MAX_TOKENS_CODE if model_type_is_code(model) else settings.AI_MAX_TOKENS_CHAT,
+            "messages": [{"role": "user", "content": prompt}],
+        }
         if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": prompt})
+            payload["system"] = system_prompt
 
         # Reuse HTTP client for connection pooling
         response = await self._http_client.post(
             url,
             headers={
-                "Authorization": f"Bearer {provider.api_key}",
-                "Content-Type": "application/json",
+                "x-api-key": provider.api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": settings.AI_MAX_TOKENS_CODE if model_type_is_code(model) else settings.AI_MAX_TOKENS_CHAT,
-                "stream": False,  # Non-streaming for speed
-            },
+            json=payload,
             timeout=timeout,
         )
         response.raise_for_status()
         result = response.json()
 
         try:
-            content = result["choices"][0]["message"]["content"]
+            content = result["content"][0]["text"]
         except (KeyError, IndexError):
-            raise RuntimeError(f"OpenRouter returned unexpected response: {result}")
+            raise RuntimeError(f"Anthropic returned unexpected response: {result}")
 
         return {
             "content": content,
             "model": model,
-            "provider": "openrouter",
-            "tokens": result.get("usage", {}).get("total_tokens", 0),
+            "provider": "anthropic",
+            "tokens": result.get("usage", {}).get("input_tokens", 0) + result.get("usage", {}).get("output_tokens", 0),
         }
+
+    async def _call_stability(
+        self,
+        provider: ProviderConfig,
+        prompt: str,
+        system_prompt: Optional[str],
+        model: str,
+        timeout: float,
+    ) -> Dict[str, Any]:
+        """Call Stability AI - raises for chat requests (image generation only)."""
+        raise RuntimeError("Stability AI is an image generation provider, not a chat provider")
 
     async def _call_ollama(
         self,
@@ -734,7 +860,7 @@ class PermanentVaultRouter:
             yield f"data: {json.dumps({'done': True})}\n\n"
             return
 
-        # Groq / OpenRouter / Ollama: non-streaming fallback with simulated streaming
+        # All other providers: non-streaming fallback with simulated streaming
         result = await self._call_provider(provider, prompt, system_prompt, requested_model, model_type)
         content = result.get("content", "")
         chunk_size = 10

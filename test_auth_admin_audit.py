@@ -1,6 +1,6 @@
 """
 Professional AI - Full Auth + Admin Audit
-Tests: Google sign-in, passkey setup, phone OTP, passkey login, 2FA login, owner admin panel.
+Tests: Google sign-in, passkey setup, passkey login, 2FA login, owner admin panel.
 """
 
 import os
@@ -137,59 +137,6 @@ async def main():
             results.append(("Email+password login", "PASS"))
         except Exception as e:
             results.append(("Register/Login", f"FAIL: {e}"))
-
-        # ============================================================
-        # TEST 2: Phone OTP - Send OTP (dev mode terminal)
-        # ============================================================
-        otp_phone = "03001234567"
-        otp_country = "+92"  # Pakistan
-        try:
-            send_otp_resp = await client.post("/api/auth/phone/send-otp", json={
-                "phone": otp_phone,
-                "country_code": otp_country
-            })
-            assert send_otp_resp.status_code == 200, f"Send OTP status {send_otp_resp.status_code}: {send_otp_resp.text}"
-            otp_data = send_otp_resp.json()
-            assert "dev_mode" in otp_data, "Response missing dev_mode flag"
-            assert otp_data["dev_mode"] is True, "Expected dev_mode=True (no Twilio keys configured)"
-            assert "phone" in otp_data, "Response missing phone"
-            results.append(("Phone OTP send (dev mode)", "PASS"))
-        except Exception as e:
-            results.append(("Phone OTP send", f"FAIL: {e}"))
-            otp_data = None
-
-        # ============================================================
-        # TEST 3: Phone OTP - Verify + Auto-create account
-        # ============================================================
-        try:
-            # Access the in-memory OTP store to get the code
-            from app.routes import auth as _auth_mod
-            normalized_phone = "+9203001234567"
-            stored_otp = _auth_mod._otp_store.get(normalized_phone, {})
-            otp_code = stored_otp.get("code", "")
-
-            assert otp_code, "No OTP code found in store (dev mode should store it)"
-
-            verify_resp = await client.post("/api/auth/phone/verify-otp", json={
-                "phone": otp_phone,
-                "country_code": otp_country,
-                "code": otp_code
-            })
-            assert verify_resp.status_code == 200, f"Verify OTP status {verify_resp.status_code}: {verify_resp.text}"
-            verify_data = verify_resp.json()
-            assert "tokens" in verify_data, "No tokens in verify OTP response"
-            assert verify_data.get("is_new_user") is True, "Expected new user auto-creation"
-            assert "user" in verify_data, "No user in response"
-            phone_user_id = verify_data["user"]["id"]
-            results.append(("Phone OTP verify + account auto-create", "PASS"))
-        except Exception as e:
-            # greenlet error is SQLite test infra limitation; on PostgreSQL asyncpg this works
-            err_str = str(e)
-            if "greenlet" in err_str or "await_only" in err_str:
-                results.append(("Phone OTP verify + account auto-create", "PASS (PostgreSQL/asyncpg verified - SQLite test infra limitation)"))
-            else:
-                results.append(("Phone OTP verify", f"FAIL: {e}"))
-            phone_user_id = None
 
         # ============================================================
         # TEST 4: Passkey Registration (begin)
@@ -408,20 +355,6 @@ async def main():
         except Exception as e:
             results.append(("List passkeys endpoint", f"FAIL: {e}"))
 
-        # ============================================================
-        # TEST 11: Twilio SMS config detection
-        # ============================================================
-        try:
-            # Check Twilio keys are empty in test env (dev mode fallback)
-            twilio_configured = bool(
-                settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER
-            )
-            results.append(
-                ("Twilio SMS keys configured", "PASS (dev mode OTP terminal fallback active)" if not twilio_configured else "PASS (Twilio configured)")
-            )
-        except Exception as e:
-            results.append(("Twilio config check", f"FAIL: {e}"))
-
     await teardown_db()
     app.dependency_overrides.clear()
 
@@ -440,7 +373,7 @@ async def main():
         print("RESULT: PASS - All auth flows verified.")
     else:
         print("RESULT: Some tests require external OAuth/WebAuthn hardware.")
-    print("AUTH COMPLETE - phone OTP, passkey, Google/Microsoft/GitHub/Apple all working, admin panel opens for owner Gmail.")
+    print("AUTH COMPLETE - Google sign-in, passkey, admin panel opens for owner Gmail.")
     print("=" * 60)
 
     return all_passed

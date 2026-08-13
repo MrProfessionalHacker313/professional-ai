@@ -59,11 +59,15 @@ export default function UniversalFormatPanel({ onClose }: UniversalFormatPanelPr
     }
   }
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (result?.content_preview) {
-      navigator.clipboard.writeText(result.content_preview)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        await navigator.clipboard.writeText(result.content_preview)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err)
+      }
     }
   }
 

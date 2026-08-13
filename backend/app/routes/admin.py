@@ -93,7 +93,7 @@ FREE_ACCESS_MAX_USERS = 10
 
 
 def _redis_client() -> redis.Redis:
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+    return redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
 
 
 def _owner_email() -> str:
@@ -411,6 +411,57 @@ async def update_owner_control_state(
     await r.set("owner:control_state", json.dumps(state))
     await log_admin_action(db, owner.id, "update_control_state", "global", None, "Updated owner global control settings", request)
     return {"message": "Owner control state updated", "state": state}
+
+
+@router.get("/settings")
+async def get_admin_settings(
+    owner: User = Depends(get_current_owner),
+):
+    state = await get_owner_control_state(owner=owner)
+    toggles = state.get("feature_toggles", {})
+    limits = state.get("global_limits", {})
+
+    return {
+        "feature_toggles": {
+            "chat": toggles.get("chat", True),
+            "code": toggles.get("code", True),
+            "media": toggles.get("media", True),
+            "offline": toggles.get("offline", True),
+            "payments": toggles.get("payments", True),
+        },
+        "trial_days": limits.get("trial_days", 3),
+        "keys_status": [
+            {"name": "Gemini", "active": bool(settings.GEMINI_API_KEY)},
+            {"name": "Groq", "active": bool(settings.GROQ_API_KEY)},
+            {"name": "Fal", "active": bool(getattr(settings, "FAL_AI_API_KEY", None))},
+            {"name": "ElevenLabs", "active": bool(settings.ELEVENLABS_API_KEY)},
+        ],
+    }
+
+
+@router.post("/settings")
+async def update_admin_settings(
+    payload: Dict[str, Any],
+    request: Request,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    feature_toggles = payload.get("feature_toggles", {})
+    trial_days = payload.get("trial_days", 3)
+
+    r = _redis_client()
+    current_state = await get_owner_control_state(owner=owner)
+    current_state["feature_toggles"] = feature_toggles
+    current_state["global_limits"]["trial_days"] = trial_days
+
+    await r.set("owner:control_state", json.dumps(current_state))
+    await log_admin_action(db, owner.id, "update_admin_settings", "global", None, "Updated admin settings via /api/admin/settings", request)
+
+    return {
+        "message": "Settings updated",
+        "feature_toggles": feature_toggles,
+        "trial_days": trial_days,
+    }
 
 
 @router.get("/owner/subscriptions")
@@ -1119,9 +1170,11 @@ async def get_analytics(
     total_users = await db.execute(select(func.count(User.id)))
     total_users_count = total_users.scalar()
 
+    # Use timedelta instead of PostgreSQL-specific make_interval for DB compatibility
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
     active_users = await db.execute(
         select(func.count(func.distinct(UsageLog.user_id)))
-        .where(UsageLog.created_at >= func.now() - func.make_interval(days=7))
+        .where(UsageLog.created_at >= seven_days_ago)
     )
     active_users_count = active_users.scalar()
 
@@ -1136,10 +1189,11 @@ async def get_analytics(
     total_calls = await db.execute(select(func.count(UsageLog.id)))
     total_calls_count = total_calls.scalar()
 
+    twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
     today_calls = await db.execute(
         select(func.count(UsageLog.id)).where(
             UsageLog.action == "code_generation",
-            UsageLog.created_at >= func.now() - func.make_interval(hours=24),
+            UsageLog.created_at >= twenty_four_hours_ago,
         )
     )
     today_calls_count = today_calls.scalar()

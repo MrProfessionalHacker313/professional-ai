@@ -184,6 +184,36 @@ CREATE TABLE usage_logs (
 );
 
 -- ===================================================================
+-- CHAT HISTORY TABLES
+-- ===================================================================
+
+CREATE TABLE conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL DEFAULT 'New Conversation',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    mode VARCHAR(20) NOT NULL DEFAULT 'chat',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    is_edited BOOLEAN DEFAULT FALSE,
+    feedback VARCHAR(10),
+    feedback_updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_conversations_user ON conversations(user_id);
+CREATE INDEX idx_conversations_updated ON conversations(updated_at);
+CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX idx_messages_created ON messages(created_at);
+
+-- ===================================================================
 -- CODE GENERATION COUNTER (Free tier limit)
 -- ===================================================================
 CREATE TABLE code_generation_counters (
@@ -340,6 +370,26 @@ CREATE TABLE security_events (
     resolved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ===================================================================
+-- USER MODULE ACCESS
+-- ===================================================================
+CREATE TABLE user_module_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    module_id VARCHAR(50) NOT NULL,
+    module_name VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    granted_by UUID REFERENCES users(id),
+    granted_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, module_id)
+);
+
+CREATE INDEX idx_user_module_access_user ON user_module_access(user_id);
+CREATE INDEX idx_user_module_access_module ON user_module_access(module_id);
 
 -- ===================================================================
 -- ADVANCED FEATURES TABLES
@@ -1021,6 +1071,12 @@ DROP TRIGGER IF EXISTS business_plans_updated_at ON business_plans;
 CREATE TRIGGER business_plans_updated_at BEFORE UPDATE ON business_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS news_digests_updated_at ON news_digests;
 CREATE TRIGGER news_digests_updated_at BEFORE UPDATE ON news_digests FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS conversations_updated_at ON conversations;
+CREATE TRIGGER conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+DROP TRIGGER IF EXISTS messages_updated_at ON messages;
+CREATE TRIGGER messages_updated_at BEFORE UPDATE ON messages FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 DROP TRIGGER IF EXISTS language_preferences_updated_at ON language_preferences;
 CREATE TRIGGER language_preferences_updated_at BEFORE UPDATE ON language_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
@@ -1302,6 +1358,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE credits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vault_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_module_access ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_memories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE images ENABLE ROW LEVEL SECURITY;
@@ -1310,20 +1367,25 @@ ALTER TABLE translations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE web_searches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chatbots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chatbot_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- Users can only view their own data
 CREATE POLICY user_isolation ON users FOR ALL USING (id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY subscription_isolation ON subscriptions FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY credit_isolation ON credits FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY vault_isolation ON vault_data FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
+CREATE POLICY module_access_isolation ON user_module_access FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY memory_isolation ON ai_memories FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY document_isolation ON documents FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY image_isolation ON images FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY voice_isolation ON voice_recordings FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY translation_isolation ON translations FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 CREATE POLICY search_isolation ON web_searches FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
+CREATE POLICY conversation_isolation ON conversations FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
+CREATE POLICY message_isolation ON messages FOR ALL USING (conversation_id IN (SELECT id FROM conversations WHERE user_id = current_setting('app.current_user_id')::UUID));
 CREATE POLICY chatbot_isolation ON chatbots FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
-CREATE POLICY conversation_isolation ON chatbot_conversations FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
+CREATE POLICY chatbot_conversation_isolation ON chatbot_conversations FOR ALL USING (user_id = current_setting('app.current_user_id')::UUID);
 
 -- ===================================================================
 -- SECURITY: Least-Privilege Database Users

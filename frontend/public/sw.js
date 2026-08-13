@@ -1,53 +1,64 @@
 /* Professional AI - Service Worker for OFFLINE-EVERYTHING mode */
+/* v2.0.0 - Enhanced: caches Next.js build assets + all routes for full offline */
 
-const CACHE_VERSION = 'proai-v1.0.0';
+const CACHE_VERSION = 'proai-v2.0.0';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-appshell`;
 const KNOWLEDGE_CACHE = `${CACHE_VERSION}-knowledge`;
 const MODEL_CACHE = `${CACHE_VERSION}-models`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
+const NEXT_CACHE = `${CACHE_VERSION}-next`;
 
 const APP_SHELL = [
   '/',
+  '/landing',
   '/manifest.json',
   '/icon.svg',
   '/icon-maskable.svg',
   '/offline.html',
+  '/chat',
+  '/login',
+  '/dashboard',
+  '/media',
+  '/pricing',
+  '/features',
+  '/profile',
+  '/search',
+  '/download',
+  '/blog',
 ];
 
 // Routes that must ALWAYS go to network first (real-time data)
-const NETWORK_FIRST = [
-  '/api/auth',
-  '/api/chat',
-  '/api/features',
-  '/api/payments',
-  '/credits',
-  '/api/admin',
-  '/api/offline',
-];
+const NETWORK_FIRST = ['/api/'];
 
 // Model download URLs from Hugging Face - cache in separate store
 const MODEL_PATTERNS = [
   'huggingface.co',
   'onnx-community',
   'Xenova',
+  'cdn.jsdelivr.net',
+  'unpkg.com',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+    (async () => {
+      const cache = await caches.open(APP_SHELL_CACHE);
+      // Cache app shell pages individually so one failure doesn't block install
+      await Promise.allSettled(APP_SHELL.map((url) => cache.add(url)));
+      await self.skipWaiting();
+    })()
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => !key.startsWith(CACHE_VERSION))
-          .map((key) => caches.delete(key))
-      ))
-      .then(() => self.clients.claim())
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((key) => !key.startsWith(CACHE_VERSION)).map((key) => caches.delete(key))
+      );
+      await self.clients.claim();
+    })()
   );
 });
 
@@ -58,44 +69,63 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and non-HTTP(S)
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Model downloads - cache first (resume-capable via Range support in HTTP cache)
-  if (MODEL_PATTERNS.some((p) => url.hostname.includes(p) || url.pathname.includes(p))) {
+  const isSameOrigin = url.origin === self.location.origin;
+
+  // Model downloads / CDN libraries - cache first
+  if (!isSameOrigin && MODEL_PATTERNS.some((p) => url.hostname.includes(p) || url.pathname.includes(p))) {
     event.respondWith(cacheThenNetwork(request, MODEL_CACHE));
     return;
   }
 
-  // Knowledge pack files (JSON knowledge index)
-  if (url.pathname.includes('/knowledge/')) {
+  // Knowledge pack files (JSON knowledge index) - cache first
+  if (isSameOrigin && url.pathname.includes('/knowledge/')) {
     event.respondWith(cacheFirstThenNetwork(request, KNOWLEDGE_CACHE));
     return;
   }
 
-  // API calls - network first, fall back to offline queue
-  if (NETWORK_FIRST.some((prefix) => url.pathname.startsWith(prefix))) {
+  // Next.js build assets (_next/static) - cache first with network update
+  if (isSameOrigin && url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirstThenNetwork(request, NEXT_CACHE));
+    return;
+  }
+
+  // API calls - network first, fall back to cached or offline signal
+  if (isSameOrigin && NETWORK_FIRST.some((prefix) => url.pathname.startsWith(prefix))) {
     event.respondWith(networkFirstThenCache(request));
     return;
   }
 
+  // Page navigations - network first, fallback to cache, finally offline.html
+  if (isSameOrigin && request.mode === 'navigate') {
+    event.respondWith(navigationFallback(request));
+    return;
+  }
+
   // App shell / static assets - stale while revalidate
-  if (request.destination === 'document' || request.destination === 'style' ||
+  if (
+    isSameOrigin &&
+    (request.destination === 'document' || request.destination === 'style' ||
       request.destination === 'script' || request.destination === 'font' ||
-      request.destination === 'image') {
+      request.destination === 'image')
+  ) {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
 
   // Everything else - network with cache fallback
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/offline.html')))
-  );
+  if (isSameOrigin) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/offline.html')))
+    );
+  }
 });
 
 async function cacheFirstThenNetwork(request, cacheName) {
@@ -140,20 +170,26 @@ async function networkFirstThenCache(request) {
     }
     return network;
   } catch (e) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
+    // For GET requests return cached data
+    if (request.method === 'GET') {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+    }
     // Signal offline to the client (the client will use local engine)
-    return new Response(JSON.stringify({
-      offline: true,
-      error: 'offline',
-      message: 'You are offline. Using local engine.',
-    }), {
-      status: 503,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Offline-Mode': 'true',
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        offline: true,
+        error: 'offline',
+        message: 'You are offline. Using local engine.',
+      }),
+      {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Offline-Mode': 'true',
+        },
+      }
+    );
   }
 }
 
@@ -171,6 +207,27 @@ async function staleWhileRevalidate(request) {
     .catch(() => cached);
 
   return cached || network;
+}
+
+async function navigationFallback(request) {
+  try {
+    const network = await fetch(request);
+    if (network.ok) {
+      const clone = network.clone();
+      caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, clone));
+      return network;
+    }
+    throw new Error(`HTTP ${network.status}`);
+  } catch (e) {
+    // Try cache
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Fall back to cached root page
+    const root = await caches.match('/');
+    if (root) return root;
+    // Final fallback
+    return caches.match('/offline.html');
+  }
 }
 
 /* ===== BACKGROUND SYNC ===== */
@@ -234,5 +291,4 @@ self.addEventListener('notificationclick', (event) => {
 /* ===== INSTALL PROMPT ===== */
 self.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
-  // Let the page handle the install prompt
 });

@@ -10,16 +10,12 @@ import { useState, useEffect, useCallback } from 'react'
 export type ConnectionStatus = 'online' | 'offline' | 'low-bandwidth'
 
 export function useConnectivity() {
-  const [isOnline, setIsOnline] = useState<boolean>(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  )
-  const [status, setStatus] = useState<ConnectionStatus>(
-    typeof navigator !== 'undefined' && navigator.onLine ? 'online' : 'offline'
-  )
+  const [isOnline, setIsOnline] = useState<boolean>(true)
+  const [status, setStatus] = useState<ConnectionStatus>('online')
   const [latency, setLatency] = useState<number | null>(null)
 
   const checkLatency = useCallback(async () => {
-    if (!navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setStatus('offline')
       return
     }
@@ -50,10 +46,8 @@ export function useConnectivity() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Initial check
     checkLatency()
 
-    // Periodic check every 30s
     const interval = setInterval(checkLatency, 30000)
 
     return () => {

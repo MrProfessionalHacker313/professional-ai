@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
-import { setAuthCookies } from '@/lib/api'
+import { setAuthCookies, scheduleProactiveRefresh } from '@/lib/api'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const PRIMARY_OWNER_EMAIL = (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'redr28126@gmail.com').toLowerCase().trim()
@@ -49,6 +49,7 @@ function GoogleCallbackContent() {
       .then((data) => {
         if (data.tokens) {
           setAuthCookies(data)
+          scheduleProactiveRefresh()
           if (OWNER_EMAILS.includes(data.user?.email?.toLowerCase().trim())) {
             router.push('/admin')
           } else {

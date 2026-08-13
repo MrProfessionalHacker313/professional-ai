@@ -170,19 +170,19 @@ export default function BusinessAdvisorPanel({ onClose }: BusinessAdvisorPanelPr
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Year 1 Revenue</span>
-                  <span className="text-green-400">${result.financial_projections.year_1.revenue.toLocaleString()}</span>
+                   <span className="text-green-400">${((result.financial_projections?.year_1?.revenue) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Year 1 Profit</span>
-                  <span className="text-blue-400">${result.financial_projections.year_1.profit.toLocaleString()}</span>
+                   <span className="text-blue-400">${((result.financial_projections?.year_1?.profit) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Year 3 Revenue</span>
-                  <span className="text-green-400">${result.financial_projections.year_3.revenue.toLocaleString()}</span>
+                   <span className="text-green-400">${((result.financial_projections?.year_3?.revenue) || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-400">Year 3 Profit</span>
-                  <span className="text-blue-400">${result.financial_projections.year_3.profit.toLocaleString()}</span>
+                   <span className="text-blue-400">${((result.financial_projections?.year_3?.profit) || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>

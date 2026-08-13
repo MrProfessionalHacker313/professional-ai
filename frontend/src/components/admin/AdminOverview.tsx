@@ -29,11 +29,11 @@ export default function AdminOverview() {
   if (!data) return null
 
   const cards = [
-    { label: 'Total Users', value: data.total_users.toLocaleString() },
-    { label: 'Active Subscribers', value: data.active_subscribers.toLocaleString() },
-    { label: 'Revenue (USD)', value: `$${data.revenue_usd.toLocaleString()}` },
-    { label: 'Revenue (PKR)', value: `Rs ${data.revenue_pkr.toLocaleString()}` },
-    { label: 'Media Jobs Today', value: data.media_jobs_today.toLocaleString() },
+    { label: 'Total Users', value: (data.total_users || 0).toLocaleString() },
+    { label: 'Active Subscribers', value: (data.active_subscribers || 0).toLocaleString() },
+    { label: 'Revenue (USD)', value: `$${(data.revenue_usd || 0).toLocaleString()}` },
+    { label: 'Revenue (PKR)', value: `Rs ${(data.revenue_pkr || 0).toLocaleString()}` },
+    { label: 'Media Jobs Today', value: (data.media_jobs_today || 0).toLocaleString() },
   ]
 
   return (

@@ -138,13 +138,15 @@ class VaultHealthMonitor:
         import httpx
 
         try:
-            if provider.provider.value == "gemini":
+            provider_name = provider.provider.value
+
+            if provider_name == "gemini":
                 url = f"{provider.base_url}/models"
                 async with httpx.AsyncClient(timeout=3.0) as client:
                     response = await client.get(url, params={"key": provider.api_key})
                     return response.status_code == 200
 
-            elif provider.provider.value == "groq":
+            elif provider_name == "groq":
                 url = f"{provider.base_url}/models"
                 async with httpx.AsyncClient(timeout=3.0) as client:
                     response = await client.get(
@@ -153,7 +155,7 @@ class VaultHealthMonitor:
                     )
                     return response.status_code == 200
 
-            elif provider.provider.value == "openrouter":
+            elif provider_name == "openrouter":
                 url = f"{provider.base_url}/models"
                 async with httpx.AsyncClient(timeout=3.0) as client:
                     response = await client.get(
@@ -162,7 +164,73 @@ class VaultHealthMonitor:
                     )
                     return response.status_code == 200
 
-            elif provider.provider.value == "ollama":
+            elif provider_name == "openai":
+                url = f"{provider.base_url}/models"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "anthropic":
+                url = "https://api.anthropic.com/v1/messages"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={
+                            "x-api-key": provider.api_key,
+                            "anthropic-version": "2023-06-01",
+                        },
+                    )
+                    return response.status_code < 500
+
+            elif provider_name == "deepseek":
+                url = f"{provider.base_url}/models"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "mistral":
+                url = f"{provider.base_url}/models"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "together":
+                url = f"{provider.base_url}/models"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "xai":
+                url = f"{provider.base_url}/models"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "stability":
+                url = f"{provider.base_url}/engines/list"
+                async with httpx.AsyncClient(timeout=3.0) as client:
+                    response = await client.get(
+                        url,
+                        headers={"Authorization": f"Bearer {provider.api_key}"},
+                    )
+                    return response.status_code == 200
+
+            elif provider_name == "ollama":
                 url = f"{provider.base_url}/api/tags"
                 async with httpx.AsyncClient(timeout=3.0) as client:
                     response = await client.get(url)

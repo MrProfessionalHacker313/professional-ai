@@ -17,6 +17,7 @@
  */
 
 const { Queue, Worker, Job } = require("bullmq");
+const axios = require("axios");
 const config = require("./config");
 const { processImage } = require("./processors/imageProcessor");
 const { processVideo } = require("./processors/videoProcessor");
@@ -38,53 +39,54 @@ const mediaQueue = new Queue(`${config.BULLMQ_PREFIX}:jobs`, { connection });
 const worker = new Worker(
   `${config.BULLMQ_PREFIX}:jobs`,
   async (job) => {
-    const { id, job_type, prompt, width, height, model, duration, script, voice_style, language } = job.data;
+    // The backend enqueues {"job_id": <media_job_id>}; job.id is the BullMQ job ID.
+    const { job_id, job_type, prompt, width, height, model, duration, script, voice_style, language } = job.data;
 
-    await reportProgress(id, "starting", 0, "Job picked up by GPU worker");
+    await reportProgress(job_id, job.id, "starting", 0, "Job picked up by GPU worker");
 
     try {
       let result;
       if (job_type === "video") {
-        await reportProgress(id, "generating_video", 10, "Generating video...");
-        result = await processVideo({ id, prompt, width, height, model, duration });
+        await reportProgress(job_id, job.id, "generating_video", 10, "Generating video...");
+        result = await processVideo({ id: job_id, prompt, width, height, model, duration });
       } else if (job_type === "picture" || job_type === "poster") {
-        await reportProgress(id, "generating_image", 10, "Generating image...");
-        result = await processImage({ id, prompt, width, height, model });
+        await reportProgress(job_id, job.id, "generating_image", 10, "Generating image...");
+        result = await processImage({ id: job_id, prompt, width, height, model });
       } else if (job_type === "animation") {
-        await reportProgress(id, "generating_animation", 10, "Generating animation...");
-        result = await processAnimation({ id, prompt, width, height });
+        await reportProgress(job_id, job.id, "generating_animation", 10, "Generating animation...");
+        result = await processAnimation({ id: job_id, prompt, width, height });
       } else if (job_type === "tts" || job_type === "voice") {
-        await reportProgress(id, "generating_voice", 10, "Generating voice...");
-        result = await processTTS({ id, script, voice_style, language });
+        await reportProgress(job_id, job.id, "generating_voice", 10, "Generating voice...");
+        result = await processTTS({ id: job_id, script, voice_style, language });
       } else {
         throw new Error(`unknown_job_type: ${job_type}`);
       }
 
       if (!result.success) {
-        await reportProgress(id, "failed", 0, result.error || "Generation failed");
+        await reportProgress(job_id, job.id, "failed", 0, result.error || "Generation failed");
         return { success: false, error: result.error };
       }
 
-      await reportProgress(id, "uploading", 90, "Uploading to cloud storage...");
+      await reportProgress(job_id, job.id, "uploading", 90, "Uploading to cloud storage...");
 
       // Upload to GCS
-      const gcsPath = `media/${job_type}s/${id}${require("path").extname(result.path || ".mp4")}`;
+      const gcsPath = `media/${job_type}s/${job_id}${require("path").extname(result.path || ".mp4")}`;
       const uploadResult = await uploadFile(result.path, gcsPath);
 
       if (uploadResult.success) {
-        await reportProgress(id, "completed", 100, "Completed");
+        await reportProgress(job_id, job.id, "completed", 100, "Completed");
         // Notify backend
-        await notifyBackend(id, { success: true, output_url: uploadResult.url, gcs_path: gcsPath, engine: result.engine });
+        await notifyBackend(job_id, job.id, { success: true, output_url: uploadResult.url, gcs_path: gcsPath, engine: result.engine });
         return { success: true, output_url: uploadResult.url, engine: result.engine };
       } else {
         // GCS failed but local file exists — still report success
-        await reportProgress(id, "completed", 100, "Completed (local only)");
-        await notifyBackend(id, { success: true, output_path: result.path, engine: result.engine, gcs_error: uploadResult.error });
+        await reportProgress(job_id, job.id, "completed", 100, "Completed (local only)");
+        await notifyBackend(job_id, job.id, { success: true, output_path: result.path, engine: result.engine, gcs_error: uploadResult.error });
         return { success: true, path: result.path, engine: result.engine, gcs_warning: uploadResult.error };
       }
     } catch (err) {
-      await reportProgress(id, "failed", 0, err.message);
-      await notifyBackend(id, { success: false, error: err.message });
+      await reportProgress(job_id, job.id, "failed", 0, err.message);
+      await notifyBackend(job_id, job.id, { success: false, error: err.message });
       throw err; // BullMQ will retry
     }
   },
@@ -116,7 +118,7 @@ worker.on("error", (err) => {
   console.error("[media-worker] Worker error:", err);
 });
 
-async function reportProgress(jobId, stage, progress, message) {
+async function reportProgress(jobId, bullmqJobId, stage, progress, message) {
   try {
     // Update Redis progress hash (read by backend for live polling)
     const redis = require("ioredis");
@@ -129,18 +131,20 @@ async function reportProgress(jobId, stage, progress, message) {
     });
     await r.expire(`media-vault:progress:${jobId}`, 3600);
 
-    // Also update BullMQ job progress
-    const job = await mediaQueue.getJob(jobId);
-    if (job) {
-      await job.updateProgress(progress);
-      await job.log(`[${stage}] ${message}`);
+    // Also update BullMQ job progress using the correct BullMQ job ID
+    if (bullmqJobId) {
+      const job = await mediaQueue.getJob(bullmqJobId);
+      if (job) {
+        await job.updateProgress(progress);
+        await job.log(`[${stage}] ${message}`);
+      }
     }
   } catch (err) {
     console.error(`[media-worker] Failed to report progress for ${jobId}:`, err.message);
   }
 }
 
-async function notifyBackend(jobId, data) {
+async function notifyBackend(jobId, bullmqJobId, data) {
   try {
     await axios.post(`${config.BACKEND_API_URL}/api/media/internal/worker-complete`, {
       job_id: jobId,

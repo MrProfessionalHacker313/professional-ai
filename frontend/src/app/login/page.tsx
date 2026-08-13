@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { authApi } from '@/lib/api'
-import { COUNTRIES } from '@/lib/countries'
+import { authApi, scheduleProactiveRefresh } from '@/lib/api'
+import { offlineAuth } from '@/lib/offline-auth'
+import { useConnectivity } from '@/lib/use-connectivity'
+
 
 const PRIMARY_OWNER_EMAIL = (process.env.NEXT_PUBLIC_OWNER_EMAIL || 'redr28126@gmail.com').toLowerCase().trim()
 const OWNER_EMAILS = [
@@ -15,8 +17,23 @@ const OWNER_EMAILS = [
     .filter(Boolean),
 ]
 
+async function saveOfflineSession(data: any) {
+  try {
+    await offlineAuth.saveSession({
+      email: data.user?.email || '',
+      displayName: data.user?.display_name || data.user?.email?.split('@')[0] || 'User',
+      token: data.tokens?.access_token || '',
+      isOwner: false,
+    })
+  } catch (e) {
+    console.error('[OfflineAuth] Failed to save offline session:', e)
+  }
+}
+
 function setAuthCookies(data: any) {
   if (typeof window === 'undefined') return
+  // Save offline session for future offline logins
+  saveOfflineSession(data)
   const secure = window.location.protocol === 'https:' ? '; Secure' : ''
   const cookieOpts = `path=/; SameSite=Strict${secure}`
   document.cookie = `access_token=${data.tokens.access_token}; ${cookieOpts}`
@@ -40,6 +57,41 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/dashboard'
+  const { isOnline } = useConnectivity()
+  const [offlineSession, setOfflineSession] = useState<any>(null)
+  const [offlineLoginLoading, setOfflineLoginLoading] = useState(false)
+  const [hasOfflineProfile, setHasOfflineProfile] = useState(false)
+
+  useEffect(() => {
+    offlineAuth.hasOfflineProfile().then(setHasOfflineProfile)
+    offlineAuth.getSession().then(setOfflineSession)
+  }, [])
+
+  const handleOfflineLogin = async () => {
+    setOfflineLoginLoading(true)
+    try {
+      let session = await offlineAuth.offlineSessionLogin()
+      if (!session) {
+        const passkeySession = await offlineAuth.offlinePasskeyLogin()
+        if (!passkeySession) {
+          toast.error('No offline session found. Login online once first.')
+          return
+        }
+        session = passkeySession
+        toast.success('Logged in with passkey! 📴')
+      } else {
+        toast.success('Offline session restored! 📴')
+      }
+      if (!session) return
+      document.cookie = `access_token=${session.token}; path=/; SameSite=Strict`
+      document.cookie = `user_email=${encodeURIComponent(session.email)}; path=/; SameSite=Strict`
+      router.push(redirect)
+    } catch (err: any) {
+      toast.error(err?.message || 'Offline login failed')
+    } finally {
+      setOfflineLoginLoading(false)
+    }
+  }
 
   // ===== FLOW A: OWNER (email only) =====
   const [ownerEmail, setOwnerEmail] = useState('')
@@ -52,16 +104,7 @@ function LoginForm() {
   const [signupPassword, setSignupPassword] = useState('')
   const [signupLoading, setSignupLoading] = useState(false)
 
-  const [countryIndex, setCountryIndex] = useState(0)
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [otpCode, setOtpCode] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpDevMode, setOtpDevMode] = useState(false)
-  const [otpLoading, setOtpLoading] = useState(false)
-
   const [socialLoading, setSocialLoading] = useState<string | null>(null)
-
-  const selectedCountry = COUNTRIES[countryIndex] || COUNTRIES[0]
 
   // ===== FLOW A: Owner email-only login =====
   const handleOwnerLogin = async (e: React.FormEvent) => {
@@ -74,6 +117,7 @@ function LoginForm() {
     try {
       const res = await authApi.ownerEmailLogin(ownerEmail)
       setAuthCookies(res.data)
+      scheduleProactiveRefresh()
       toast.success('👑 OWNER ACCESS GRANTED')
       router.push('/admin')
     } catch (err: any) {
@@ -84,7 +128,7 @@ function LoginForm() {
   }
 
   // ===== FLOW B: Social sign-in =====
-  const startOAuth = async (provider: 'google' | 'microsoft' | 'github' | 'apple') => {
+  const startOAuth = async (provider: 'google') => {
     setSocialLoading(provider)
     try {
       const res = await authApi.oauthLogin(provider)
@@ -112,48 +156,13 @@ function LoginForm() {
         display_name: signupName || undefined,
       })
       setAuthCookies(res.data)
+      scheduleProactiveRefresh()
       toast.success('Account created! 🎉')
       router.push('/dashboard?passkey_setup=1')
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || 'Signup failed')
     } finally {
       setSignupLoading(false)
-    }
-  }
-
-  // ===== FLOW B: Phone OTP =====
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setOtpLoading(true)
-    try {
-      const res = await authApi.sendOTP({ phone: phoneNumber, country_code: selectedCountry.dial })
-      setOtpSent(true)
-      setOtpDevMode(!!res.data.dev_mode)
-      toast.success(res.data.dev_mode ? 'Dev mode: OTP in server terminal' : 'OTP sent via SMS!')
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to send OTP')
-    } finally {
-      setOtpLoading(false)
-    }
-  }
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setOtpLoading(true)
-    try {
-      const res = await authApi.verifyOTP({ phone: phoneNumber, country_code: selectedCountry.dial, code: otpCode })
-      const data = res.data
-      if (data.requires_2fa) {
-        toast('2FA code required', { icon: '🔐' })
-        return
-      }
-      setAuthCookies(data)
-      toast.success(data.is_new_user ? 'Account created! 🎉' : 'Logged in with phone!')
-      router.push(data.is_new_user ? '/dashboard?passkey_setup=1' : redirect)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'OTP verification failed')
-    } finally {
-      setOtpLoading(false)
     }
   }
 
@@ -192,12 +201,32 @@ function LoginForm() {
             </form>
           </div>
 
+          {/* ============ OFFLINE LOGIN ============ */}
+          {!isOnline && hasOfflineProfile && (
+            <div className="mb-8 rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-4">
+              <p className="text-sm font-semibold text-emerald-300 mb-3">📴 OFFLINE MODE</p>
+              {offlineSession ? (
+                <div className="mb-3 text-xs text-emerald-400">
+                  Logged in as <span className="font-bold">{offlineSession.email}</span> — session cached locally
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleOfflineLogin}
+                disabled={offlineLoginLoading}
+                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 text-white font-bold rounded-lg transition"
+              >
+                {offlineLoginLoading ? 'Restoring...' : '🔓 LOGIN OFFLINE (No Internet Needed)'}
+              </button>
+            </div>
+          )}
+
           {/* ============ FLOW B: REGULAR USERS ============ */}
           <div className="border-t border-slate-800 pt-6">
             <p className="text-xs text-slate-500 text-center mb-4">or sign in with</p>
 
             {/* Social buttons row */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="grid grid-cols-1 gap-2 mb-4">
               <button
                 type="button"
                 onClick={() => void startOAuth('google')}
@@ -206,95 +235,7 @@ function LoginForm() {
               >
                 {socialLoading === 'google' ? '...' : 'Google'}
               </button>
-              <button
-                type="button"
-                onClick={() => void startOAuth('microsoft')}
-                disabled={!!socialLoading}
-                className="py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                {socialLoading === 'microsoft' ? '...' : 'Microsoft'}
-              </button>
-              <button
-                type="button"
-                onClick={() => void startOAuth('github')}
-                disabled={!!socialLoading}
-                className="py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                {socialLoading === 'github' ? '...' : 'GitHub'}
-              </button>
-              <button
-                type="button"
-                onClick={() => void startOAuth('apple')}
-                disabled={!!socialLoading}
-                className="py-2.5 bg-black hover:bg-neutral-800 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
-              >
-                {socialLoading === 'apple' ? '...' : 'Apple'}
-              </button>
             </div>
-
-            {/* Phone OTP */}
-            {!otpSent ? (
-              <form onSubmit={handleSendOtp} className="space-y-3 mb-4">
-                <div className="flex gap-2">
-                  <select
-                    value={countryIndex}
-                    onChange={(e) => setCountryIndex(Number(e.target.value))}
-                    className="w-1/3 px-2 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    {COUNTRIES.map((c, i) => (
-                      <option key={c.code + c.dial} value={i}>{c.flag} {c.dial}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d]/g, ''))}
-                    placeholder="Phone number"
-                    className="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={otpLoading || phoneNumber.length < 7}
-                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-lg transition"
-                >
-                  {otpLoading ? 'Sending...' : '📱 Phone OTP'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOtp} className="space-y-3 mb-4">
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-sm text-green-300">
-                  <p className="font-medium mb-1">📱 OTP Sent</p>
-                  <p>Enter the 6-digit code sent to {selectedCountry.dial} {phoneNumber}.</p>
-                  {otpDevMode && (
-                    <p className="mt-1 text-amber-400">Dev mode: Check the backend terminal for the OTP code.</p>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="6-digit code"
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-green-500"
-                  maxLength={6}
-                />
-                <button
-                  type="submit"
-                  disabled={otpLoading || otpCode.length !== 6}
-                  className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold rounded-lg transition"
-                >
-                  {otpLoading ? 'Verifying...' : 'Verify & Sign In'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOtpSent(false)}
-                  className="w-full py-2 text-slate-500 hover:text-white text-sm transition"
-                >
-                  ← Change number
-                </button>
-              </form>
-            )}
 
             {/* Signup / Login toggle */}
             <div className="border-t border-slate-800 pt-4">

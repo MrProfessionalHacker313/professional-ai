@@ -14,6 +14,14 @@ from typing import Dict, Any, List, Optional
 from loguru import logger
 
 from app.config import settings
+from app.services.media.provider_keys import media_key_vault
+
+try:
+    import httpx
+    HTTPX_AVAILABLE = True
+except ImportError:
+    httpx = None
+    HTTPX_AVAILABLE = False
 
 try:
     import edge_tts
@@ -107,6 +115,7 @@ class VoiceOverService:
     ) -> Dict[str, Any]:
         """
         Generate voice over audio from the EXACT script text.
+        Failover chain: ElevenLabs → Google Cloud TTS → edge-tts → cloud fallback.
         Returns path and metadata.
         """
         if not script or not script.strip():
@@ -114,9 +123,7 @@ class VoiceOverService:
 
         # Voice cloning path (using clone provider when available)
         if voice_clone_id and voice_style == "clone":
-            # In production, this calls the voice clone provider (e.g. ElevenLabs)
-            # For now, falls through to default voice as placeholder
-            logger.warning(f"Voice clone {voice_clone_id} requested but provider not configured — using default voice")
+            logger.warning(f"Voice clone {voice_clone_id} requested — falling back to default voice")
 
         voice = self._resolve_voice(voice_style, language, voice_prompt)
 
@@ -124,34 +131,185 @@ class VoiceOverService:
             job_id = os.urandom(8).hex()
             output_path = str(self._output_dir / f"voice_{job_id}.mp3")
 
-        # Ensure output directory exists
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-        try:
-            if EDGE_TTS_AVAILABLE:
-                communicate = edge_tts.Communicate(script, voice)
-                await communicate.save(output_path)
-            else:
-                # Fallback: use cloud TTS API endpoint if configured
-                success = await self._cloud_tts_fallback(script, voice, output_path)
-                if not success:
-                    return {"success": False, "error": "no_tts_provider"}
+        providers = [
+            ("elevenlabs", lambda: self._synthesize_elevenlabs(script, voice, output_path, voice_clone_id)),
+            ("google_tts", lambda: self._synthesize_google_tts(script, voice, output_path, language)),
+        ]
 
-            # Verify the file was created and has content
-            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
-                return {"success": False, "error": "output_empty"}
+        if EDGE_TTS_AVAILABLE:
+            providers.append(("edge_tts", lambda: self._synthesize_edge_tts(script, voice, output_path)))
 
+        for provider_name, provider_fn in providers:
+            try:
+                result = await asyncio.wait_for(provider_fn(), timeout=30)
+                if result.get("success"):
+                    return {
+                        "success": True,
+                        "path": output_path,
+                        "provider": provider_name,
+                        "voice": voice,
+                        "language": language,
+                        "script": script,
+                        "duration_estimate": self._estimate_duration(script),
+                        "provider_detail": result,
+                    }
+            except asyncio.TimeoutError:
+                logger.warning(f"{provider_name} voice synthesis timed out after 30s")
+            except Exception as e:
+                logger.warning(f"{provider_name} voice synthesis failed: {e}")
+
+        # Final fallback: cloud TTS endpoint if configured
+        success = await self._cloud_tts_fallback(script, voice, output_path)
+        if success:
             return {
                 "success": True,
                 "path": output_path,
+                "provider": "cloud_tts_fallback",
                 "voice": voice,
                 "language": language,
                 "script": script,
                 "duration_estimate": self._estimate_duration(script),
             }
 
+        return {"success": False, "error": "all_voice_providers_failed"}
+
+    async def _synthesize_elevenlabs(
+        self, script: str, voice: str, output_path: str, voice_clone_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Synthesize using ElevenLabs with multi-key rotation."""
+        api_key = media_key_vault.elevenlabs.get_active_key()
+        if not api_key:
+            return {"success": False, "error": "no_elevenlabs_key"}
+
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx_not_available"}
+
+        voice_id = voice
+        if voice_clone_id:
+            if len(voice_clone_id) == 20 and voice_clone_id.isalnum():
+                voice_id = voice_clone_id
+            else:
+                logger.warning("Voice clone not available via ElevenLabs direct API, using default voice")
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        payload = {
+            "text": script[:5000],
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {"stability": 0.50, "similarity_boost": 0.75, "style": 0.20, "use_speaker_boost": True},
+        }
+        headers = {"xi-api-key": api_key, "Content-Type": "application/json", "Accept": "audio/mpeg"}
+
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code == 429:
+                    retry_after = float(resp.headers.get("retry-after", 60))
+                    media_key_vault.elevenlabs.mark_rate_limited(api_key, retry_after)
+                    return {"success": False, "error": "elevenlabs_rate_limited"}
+                if resp.status_code == 401:
+                    media_key_vault.elevenlabs.mark_error(api_key)
+                    return {"success": False, "error": "elevenlabs_auth_failed"}
+                if resp.status_code != 200:
+                    media_key_vault.elevenlabs.mark_error(api_key)
+                    return {"success": False, "error": f"elevenlabs_http_{resp.status_code}"}
+
+                with open(output_path, "wb") as f:
+                    f.write(resp.content)
+                if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                    return {"success": False, "error": "output_empty"}
+
+                media_key_vault.elevenlabs.mark_success(api_key)
+                return {"success": True, "voice_id": voice_id, "model": "eleven_multilingual_v2", "key_used": api_key[:8] + "..."}
+        except asyncio.TimeoutError:
+            return {"success": False, "error": "elevenlabs_timeout"}
         except Exception as e:
-            logger.error(f"Voice over generation failed: {e}")
+            logger.error(f"ElevenLabs synthesis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _synthesize_google_tts(
+        self, script: str, voice: str, output_path: str, language: str = "en"
+    ) -> Dict[str, Any]:
+        """Synthesize using Google Cloud TTS with multi-key rotation."""
+        api_key = media_key_vault.google_tts.get_active_key()
+        if not api_key:
+            return {"success": False, "error": "no_google_tts_key"}
+
+        if not HTTPX_AVAILABLE:
+            return {"success": False, "error": "httpx_not_available"}
+
+        lang_code = language if len(language) == 5 else f"{language}-US"
+        voice_name = voice if voice.startswith(lang_code[:2]) else f"{lang_code}-Standard-A"
+
+        url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}"
+        payload = {
+            "input": {"text": script[:5000]},
+            "voice": {"languageCode": lang_code, "name": voice_name, "ssmlGender": "FEMALE"},
+            "audioConfig": {"audioEncoding": "MP3", "speakingRate": 1.0, "pitch": 0.0},
+        }
+        headers = {"Content-Type": "application/json"}
+
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code == 429:
+                    media_key_vault.google_tts.mark_rate_limited(api_key, 60.0)
+                    return {"success": False, "error": "google_tts_rate_limited"}
+                if resp.status_code == 401:
+                    media_key_vault.google_tts.mark_error(api_key)
+                    return {"success": False, "error": "google_tts_auth_failed"}
+                if resp.status_code != 200:
+                    media_key_vault.google_tts.mark_error(api_key)
+                    return {"success": False, "error": f"google_tts_http_{resp.status_code}"}
+
+                data = resp.json()
+                audio_content = data.get("audioContent")
+                if not audio_content:
+                    return {"success": False, "error": "google_tts_no_audio"}
+
+                import base64
+                with open(output_path, "wb") as f:
+                    f.write(base64.b64decode(audio_content))
+                if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                    return {"success": False, "error": "output_empty"}
+
+                media_key_vault.google_tts.mark_success(api_key)
+                return {"success": True, "voice": voice_name, "engine": "google_tts", "key_used": api_key[:8] + "..."}
+        except asyncio.TimeoutError:
+            return {"success": False, "error": "google_tts_timeout"}
+        except Exception as e:
+            logger.error(f"Google TTS synthesis failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _synthesize_edge_tts(self, script: str, voice: str, output_path: str) -> Dict[str, Any]:
+        """Synthesize using edge-tts (Microsoft voices). FREE, unlimited."""
+        if not EDGE_TTS_AVAILABLE:
+            return {"success": False, "error": "edge_tts_not_installed"}
+
+        style_params = {"rate": "+0%", "pitch": "+0Hz", "volume": "+0%"}
+
+        try:
+            communicate = edge_tts.Communicate(
+                script,
+                voice,
+                rate=style_params.get("rate", "+0%"),
+                pitch=style_params.get("pitch", "+0Hz"),
+                volume=style_params.get("volume", "+0%"),
+            )
+            await communicate.save(output_path)
+
+            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                return {"success": False, "error": "output_empty"}
+
+            logger.info(f"edge-tts synthesis success (voice={voice})")
+            return {
+                "success": True,
+                "voice": voice,
+                "engine": "edge-tts",
+            }
+        except Exception as e:
+            logger.error(f"edge-tts synthesis failed: {e}")
             return {"success": False, "error": str(e)}
 
     async def _cloud_tts_fallback(self, script: str, voice: str, output_path: str) -> bool:

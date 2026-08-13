@@ -32,13 +32,10 @@ import {
   Crown,
   Lock,
   Zap,
-  FilmIcon,
   WandSparkles
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { mediaApi } from '@/lib/api'
-import OfflineStatusBar from '@/components/OfflineStatusBar'
-import PWAInstaller from '@/components/PWAInstaller'
 import toast from 'react-hot-toast'
 
 type MediaType = 'video' | 'picture' | 'poster' | 'animation'
@@ -108,6 +105,16 @@ const VOICE_STYLES = [
 const RESOLUTIONS = ['720p', '1080p', '4k', '8k']
 const FORMATS = ['mp4', 'png', 'gif', 'webp', 'mov']
 const ASPECT_RATIOS = ['16:9', '9:16', '1:1']
+const SCRIPT_STYLES = ['professional', 'cinematic', 'storytelling', 'educational', 'promotional', 'documentary', 'viral', 'news']
+const PROMPT_STYLES = ['cinematic', 'photorealistic', 'anime', '3d', 'pixel_art', 'watercolor', 'cyberpunk', 'minimalist']
+const PROMPT_MOODS = ['dramatic', 'happy', 'mysterious', 'epic', 'calm', 'dark', 'bright', 'nostalgic']
+const CAMERA_ANGLES = ['wide', 'close_up', 'extreme_close_up', 'medium', 'low_angle', 'high_angle', 'overhead', 'dutch_angle', 'tracking', 'aerial']
+const LIGHTING_OPTIONS = ['golden_hour', 'neon', 'studio', 'natural', 'dramatic', 'soft', 'hard', 'backlit', 'low_key', 'high_key']
+const SPEED_OPTIONS = [
+  { value: 'standard', label: 'Standard', desc: 'Normal speed' },
+  { value: 'fast', label: 'Fast', desc: '2x faster' },
+  { value: 'ultra_fast', label: '⚡ Ultra Fast', desc: 'PRO only — 4x faster', pro: true },
+]
 const LANGUAGES = [
   { code: 'en', name: 'English' }, { code: 'ur', name: 'Urdu' },
   { code: 'hi', name: 'Hindi' }, { code: 'bn', name: 'Bengali' },
@@ -148,12 +155,26 @@ export default function MediaStudioPage() {
   const [aspectRatio, setAspectRatio] = useState('16:9')
   const [negativePrompt, setNegativePrompt] = useState('')
   const [model, setModel] = useState('')
+  const [speed, setSpeed] = useState('standard')
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false)
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false)
+  const [scriptStyle, setScriptStyle] = useState('professional')
+  const [promptStyle, setPromptStyle] = useState('cinematic')
+  const [promptMood, setPromptMood] = useState('dramatic')
+  const [cameraAngle, setCameraAngle] = useState('wide')
+  const [lighting, setLighting] = useState('golden_hour')
+  const [generatedPrompt, setGeneratedPrompt] = useState('')
+  const [trialExpired, setTrialExpired] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
   
   const [limits, setLimits] = useState<MediaLimits | null>(null)
   const [jobs, setJobs] = useState<MediaJob[]>([])
   const [activeJob, setActiveJob] = useState<MediaJob | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   // Auto Editor mode
   const [editorMode, setEditorMode] = useState<'generate' | 'autoedit'>('generate')
@@ -218,6 +239,38 @@ export default function MediaStudioPage() {
       console.error('Failed to load voice clones:', err)
     }
   }, [])
+
+  // Auth guard
+  useEffect(() => {
+    const hasLocalToken = typeof localStorage !== 'undefined' && !!localStorage.getItem('access_token')
+    const hasCookieToken =
+      typeof document !== 'undefined' &&
+      document.cookie.split('; ').some((row) => row.startsWith('access_token='))
+    const hasRefreshToken =
+      typeof document !== 'undefined' &&
+      document.cookie.split('; ').some((row) => row.startsWith('refresh_token='))
+    if (!hasLocalToken && !hasCookieToken && !hasRefreshToken && mounted) {
+      router.push('/login')
+    }
+  }, [mounted, router])
+
+  // Owner/admin check - admin gets all paid features free
+  useEffect(() => {
+    if (!mounted) return
+    let cancelled = false
+    import('@/lib/api').then(({ authApi }) => {
+      authApi.checkIsOwner().then((res) => {
+        if (!cancelled) {
+          const isOwner = Boolean(res.data?.is_owner)
+          const isAdmin = Boolean(res.data?.is_admin)
+          setIsOwner(isOwner || isAdmin)
+        }
+      }).catch(() => {
+        if (!cancelled) setIsOwner(false)
+      })
+    })
+    return () => { cancelled = true }
+  }, [mounted])
 
   useEffect(() => {
     loadLimits()
@@ -323,7 +376,7 @@ export default function MediaStudioPage() {
   const handleDownload = async (job: MediaJob) => {
     try {
       const res = await mediaApi.downloadJob(job.id)
-      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const url = window.URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
       a.download = `proai_${job.media_type}_${job.id}.${job.format}`
@@ -451,7 +504,7 @@ export default function MediaStudioPage() {
   const handleAutoEditDownload = async (job: any) => {
     try {
       const res = await mediaApi.autoEditDownload(job.id)
-      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const url = window.URL.createObjectURL(res.data)
       const a = document.createElement('a')
       a.href = url
       a.download = `proai_autoedit_${job.preset}_${job.id}.mp4`
@@ -476,7 +529,68 @@ export default function MediaStudioPage() {
     }
   }
 
-  const isProUser = limits?.plan !== 'free' && !limits?.unlimited ? false : limits?.unlimited || ['pro','pro_yearly','max','business','enterprise','trial'].includes(limits?.plan || '')
+  const isProUser = isOwner || limits?.unlimited || ['pro','pro_yearly','max','business','enterprise','trial'].includes(limits?.plan || '')
+  const isPaidTier = isOwner || ['pro','pro_yearly','max','business','enterprise'].includes(limits?.plan || '')
+  const canUseUltraFast = isPaidTier
+  const canUse4K = isPaidTier
+  const availableResolutions = canUse4K ? RESOLUTIONS : RESOLUTIONS.filter(r => r !== '4k' && r !== '8k')
+  const availableSpeeds = canUseUltraFast ? SPEED_OPTIONS : SPEED_OPTIONS.filter(s => !s.pro)
+
+  const handleGenerateScript = async () => {
+    if (!topic.trim()) {
+      toast.error('Please enter a topic first')
+      return
+    }
+
+    setIsGeneratingScript(true)
+    try {
+      const res = await mediaApi.generateScript({
+        topic: topic.trim(),
+        duration_seconds: duration,
+        style: scriptStyle,
+        language,
+      })
+      if (res.data.script) {
+        setScript(res.data.script)
+        if (res.data.cinematic_prompt) {
+          setScenesText(res.data.cinematic_prompt)
+        }
+        toast.success('Professional script generated!')
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Script generation failed')
+    } finally {
+      setIsGeneratingScript(false)
+    }
+  }
+
+  const handleGeneratePrompt = async () => {
+    if (!topic.trim()) {
+      toast.error('Please enter a topic first')
+      return
+    }
+
+    setIsGeneratingPrompt(true)
+    try {
+      const res = await mediaApi.generatePrompt({
+        topic: topic.trim(),
+        media_type: mediaType,
+        style: promptStyle,
+        mood: promptMood,
+        camera_angle: cameraAngle,
+        lighting,
+        aspect_ratio: aspectRatio,
+      })
+      if (res.data.prompt) {
+        setGeneratedPrompt(res.data.prompt)
+        toast.success('Professional prompt generated!')
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Prompt generation failed')
+    } finally {
+      setIsGeneratingPrompt(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -518,6 +632,38 @@ export default function MediaStudioPage() {
             </div>
           )}
         </div>
+
+        {/* Trial Expired Banner */}
+        {trialExpired && limits?.plan === 'free' && !isOwner && (
+          <div className="bg-gradient-to-r from-red-900/30 to-orange-800/20 border border-red-500/30 rounded-2xl p-6 mb-8">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-red-500/20">
+                <Crown className="w-8 h-8 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-300 mb-1">
+                  Your Trial Has Expired
+                </h3>
+                <p className="text-sm text-gray-300 mb-4">
+                  Your free trial has ended. You've been downgraded to the Free plan. 
+                  Upgrade to PRO to unlock longer videos (up to 10 minutes), 4K/8K resolution, 
+                  Ultra Fast rendering, unlimited quota, and professional features.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => router.push('/pricing')}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 font-semibold text-sm transition-all"
+                  >
+                    Upgrade to PRO
+                  </button>
+                  <span className="text-xs text-gray-500 flex items-center">
+                    <Lock className="w-3 h-3 mr-1" /> Videos above 30s, 4K/8K & unlimited quota are PRO features
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Limits Display */}
         {limits && (
@@ -564,7 +710,7 @@ export default function MediaStudioPage() {
           >
             {tab.icon}
             {tab.label}
-            {tab.mode === 'autoedit' && !limits?.unlimited && (
+            {tab.mode === 'autoedit' && !isOwner && !limits?.unlimited && (
               <Crown className="w-3 h-3 text-yellow-400" />
             )}
           </button>
@@ -572,7 +718,7 @@ export default function MediaStudioPage() {
       </div>
 
       {/* PRO Gating Banner for Auto Editor */}
-      {editorMode === 'autoedit' && !limits?.unlimited && limits?.plan !== 'pro' && limits?.plan !== 'pro_yearly' && limits?.plan !== 'max' && limits?.plan !== 'business' && limits?.plan !== 'enterprise' && (
+      {editorMode === 'autoedit' && !isOwner && !limits?.unlimited && limits?.plan !== 'pro' && limits?.plan !== 'pro_yearly' && limits?.plan !== 'max' && limits?.plan !== 'business' && limits?.plan !== 'enterprise' && (
         <div className="bg-gradient-to-r from-yellow-900/30 to-yellow-800/20 border border-yellow-500/30 rounded-2xl p-6 mb-6">
           <div className="flex items-start gap-4">
             <div className="p-3 rounded-xl bg-yellow-500/20">
@@ -727,7 +873,7 @@ export default function MediaStudioPage() {
                   { key: 'color_grade', label: 'Color Grade', icon: <Palette className="w-3 h-3" /> },
                   { key: 'stabilize', label: 'Stabilize', icon: <Zap className="w-3 h-3" /> },
                   { key: 'ken_burns', label: 'Ken Burns', icon: <MonitorPlay className="w-3 h-3" /> },
-                  { key: 'add_intro_outro', label: 'Intro + Outro', icon: <FilmIcon className="w-3 h-3" /> },
+                   { key: 'add_intro_outro', label: 'Intro + Outro', icon: <Film className="w-3 h-3" /> },
                   { key: 'adjust_speed', label: 'Speed FX', icon: <Zap className="w-3 h-3" /> },
                   { key: 'background_music', label: 'BG Music', icon: <Music className="w-3 h-3" /> },
                   { key: 'watermark_toggle', label: 'Watermark', icon: <ShieldCheck className="w-3 h-3" /> },
@@ -887,6 +1033,23 @@ export default function MediaStudioPage() {
                   <Type className="w-4 h-4" />
                   Script (for voice over + subtitles)
                 </label>
+                <div className="flex flex-col md:flex-row gap-2 mb-2">
+                  <select
+                    value={scriptStyle}
+                    onChange={(e) => setScriptStyle(e.target.value)}
+                    className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {SCRIPT_STYLES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                  </select>
+                  <button
+                    onClick={handleGenerateScript}
+                    disabled={isGeneratingScript}
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                  >
+                    {isGeneratingScript ? <Loader2 className="w-4 h-4 animate-spin" /> : <WandSparkles className="w-4 h-4" />}
+                    Generate Script
+                  </button>
+                </div>
                 <textarea
                   value={script}
                   onChange={(e) => setScript(e.target.value)}
@@ -915,6 +1078,89 @@ export default function MediaStudioPage() {
                 <p className="text-xs text-gray-500 mt-1">
                   No scene missing — every scene you describe is generated and combined into ONE video.
                 </p>
+              </div>
+
+              {/* Professional Prompt Generator */}
+              <div className="mb-4 p-4 rounded-xl bg-blue-900/20 border border-blue-500/30">
+                <label className="block text-sm text-blue-300 mb-3 flex items-center gap-2">
+                  <WandSparkles className="w-4 h-4" />
+                  Professional Cinematography Prompt Generator
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Style</label>
+                    <select
+                      value={promptStyle}
+                      onChange={(e) => setPromptStyle(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {PROMPT_STYLES.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Mood</label>
+                    <select
+                      value={promptMood}
+                      onChange={(e) => setPromptMood(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {PROMPT_MOODS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Camera Angle</label>
+                    <select
+                      value={cameraAngle}
+                      onChange={(e) => setCameraAngle(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {CAMERA_ANGLES.map(a => <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Lighting</label>
+                    <select
+                      value={lighting}
+                      onChange={(e) => setLighting(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {LIGHTING_OPTIONS.map(l => <option key={l} value={l}>{l.replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleGeneratePrompt}
+                  disabled={isGeneratingPrompt}
+                  className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                >
+                  {isGeneratingPrompt ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                  Generate Professional Prompt
+                </button>
+                {generatedPrompt && (
+                  <div className="mt-3">
+                    <div className="text-xs text-gray-400 mb-1">Generated Prompt:</div>
+                    <textarea
+                      value={generatedPrompt}
+                      onChange={(e) => setGeneratedPrompt(e.target.value)}
+                      rows={4}
+                      className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => { setScenesText(generatedPrompt); toast.success('Prompt added to scenes!') }}
+                        className="flex-1 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium"
+                      >
+                        Use as Scene Description
+                      </button>
+                      <button
+                        onClick={() => { setTopic(`${topic ? topic + ' ' : ''}${generatedPrompt}`); toast.success('Prompt added to topic!') }}
+                        className="flex-1 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-xs font-medium"
+                      >
+                        Use as Topic
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Voice & Language */}
@@ -1002,14 +1248,39 @@ export default function MediaStudioPage() {
                   <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
                     <MonitorPlay className="w-4 h-4" />
                     Resolution
+                    {!canUse4K && <Lock className="w-3 h-3 text-yellow-400" />}
                   </label>
                   <select
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
-                    {RESOLUTIONS.map(r => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+                    {availableResolutions.map(r => <option key={r} value={r}>{r.toUpperCase()}{!canUse4K && (r === '4k' || r === '8k') ? ' 🔒' : ''}</option>)}
                   </select>
+                  {!canUse4K && (
+                    <p className="text-[10px] text-yellow-400/80 mt-1 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> 4K/8K requires PRO
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Speed
+                    {!canUseUltraFast && <Lock className="w-3 h-3 text-yellow-400" />}
+                  </label>
+                  <select
+                    value={speed}
+                    onChange={(e) => setSpeed(e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {availableSpeeds.map(s => <option key={s.value} value={s.value}>{s.label}{!canUseUltraFast && s.pro ? ' 🔒' : ''}</option>)}
+                  </select>
+                  {!canUseUltraFast && (
+                    <p className="text-[10px] text-yellow-400/80 mt-1 flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Ultra Fast requires PRO
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Format</label>
@@ -1294,8 +1565,6 @@ export default function MediaStudioPage() {
           </div>
         </div>
       </div>
-      <OfflineStatusBar />
-      <PWAInstaller />
     </div>
   )
 }

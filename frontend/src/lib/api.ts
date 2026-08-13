@@ -16,6 +16,63 @@ const OWNER_EMAILS = [
     .filter(Boolean),
 ]
 
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
+function getTokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.exp ? payload.exp * 1000 : null
+  } catch {
+    return null
+  }
+}
+
+async function doProactiveRefresh(refreshToken: string): Promise<void> {
+  try {
+    const response = await api.post(
+      '/api/auth/refresh',
+      { refresh_token: refreshToken },
+    )
+    if (response.data.access_token) {
+      setCookie('access_token', response.data.access_token)
+      if (response.data.refresh_token) {
+        setCookie('refresh_token', response.data.refresh_token)
+      }
+      scheduleProactiveRefresh()
+    }
+  } catch {
+    // Silently fail — the reactive interceptor handles 401s on real requests
+  }
+}
+
+export function scheduleProactiveRefresh(): void {
+  if (proactiveRefreshTimer) clearTimeout(proactiveRefreshTimer)
+
+  const accessToken = getAccessTokenFromCookie()
+  const refreshToken = getRefreshTokenFromCookie()
+
+  if (!accessToken || !refreshToken) return
+
+  const expiry = getTokenExpiry(accessToken)
+  if (!expiry) return
+
+  const now = Date.now()
+  const refreshAt = expiry - now - 60 * 1000
+
+  if (refreshAt <= 0) {
+    void doProactiveRefresh(refreshToken)
+    return
+  }
+
+  proactiveRefreshTimer = setTimeout(() => {
+    void doProactiveRefresh(refreshToken)
+  }, refreshAt)
+}
+
+if (typeof window !== 'undefined') {
+  scheduleProactiveRefresh()
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -84,7 +141,7 @@ function setCookie(name: string, value: string): void {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax${secure}`
 }
 
-function deleteAllCookies(): void {
+export function deleteAllCookies(): void {
   if (typeof window === 'undefined') return
   document.cookie.split(';').forEach((cookie) => {
     document.cookie = cookie.trim().split(';')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/'
@@ -195,6 +252,7 @@ api.interceptors.response.use(
           if (csrfResponse.data.csrf_token) {
             setCookie('csrf_token', csrfResponse.data.csrf_token)
           }
+          scheduleProactiveRefresh()
         }
 
         return api(originalRequest)
@@ -260,17 +318,12 @@ export const authApi = {
     api.post('/api/auth/owner/password-reset/request', { email }),
   ownerPasswordResetConfirm: (data: { email: string; token: string; new_password: string }) =>
     api.post('/api/auth/owner/password-reset/confirm', data),
-  oauthLogin: (provider: 'google' | 'microsoft' | 'github' | 'apple') =>
+  oauthLogin: (provider: 'google') =>
     api.post(`/api/auth/oauth/${provider}`),
   setup2FA: () => api.post('/api/auth/2fa/setup'),
   verify2FA: (code: string) => api.post('/api/auth/2fa/verify', { code }),
   disable2FA: () => api.post('/api/auth/2fa/disable'),
   getCsrfToken: () => api.get('/api/auth/csrf-token'),
-  // Phone OTP (SMS)
-  sendOTP: (data: { phone: string; country_code: string }) =>
-    api.post('/api/auth/phone/send-otp', data),
-  verifyOTP: (data: { phone: string; country_code: string; code: string }) =>
-    api.post('/api/auth/phone/verify-otp', data),
   // Passkey (WebAuthn)
   passkeyRegisterBegin: (data?: { device_name?: string }) =>
     api.post('/api/auth/passkey/register/begin', data || {}),
@@ -293,6 +346,25 @@ export const chatApi = {
     api.post('/api/chat/bugfix', data),
   securityQuery: (data: { query: string }) =>
     api.post('/api/chat/security', data),
+}
+
+export const conversationsApi = {
+  list: (params?: { search?: string }) =>
+    api.get('/api/conversations', { params }),
+  get: (id: string) =>
+    api.get(`/api/conversations/${id}`),
+  create: (data: { title?: string }) =>
+    api.post('/api/conversations', data),
+  rename: (id: string, data: { title: string }) =>
+    api.patch(`/api/conversations/${id}`, data),
+  delete: (id: string) =>
+    api.delete(`/api/conversations/${id}`),
+  addMessage: (id: string, data: { content: string; mode?: string; role?: string }) =>
+    api.post(`/api/conversations/${id}/messages`, data),
+  adminListAll: (params?: { search?: string }) =>
+    api.get('/api/conversations/admin/all', { params }),
+  adminDelete: (id: string) =>
+    api.delete(`/api/conversations/admin/${id}`),
 }
 
 export const paymentsApi = {
@@ -350,6 +422,17 @@ export const mediaApi = {
     voice_clone_id?: string
     voice_consent?: boolean
   }) => api.post('/api/media/generate', data),
+  generateScript: (data: { topic: string; duration_seconds?: number; style?: string; language?: string }) =>
+    api.post('/api/media/generate-script', data),
+  generatePrompt: (data: {
+    topic: string
+    media_type?: string
+    style?: string
+    mood?: string
+    camera_angle?: string
+    lighting?: string
+    aspect_ratio?: string
+  }) => api.post('/api/media/generate-prompt', data),
   getJob: (jobId: string) => api.get(`/api/media/jobs/${jobId}`),
   listJobs: (params?: { limit?: number; offset?: number }) =>
     api.get('/api/media/jobs', { params }),
@@ -410,6 +493,18 @@ export const mediaApi = {
   autoEditDownload: (jobId: string) => api.get(`/api/media/auto-edit/jobs/${jobId}/download`, { responseType: 'blob' }),
   autoEditManual: (jobId: string, data: { action: string; params: any }) =>
     api.post(`/api/media/auto-edit/jobs/${jobId}/manual-edit`, data),
+}
+
+export const modulesApi = {
+  list: () => api.get('/api/modules/'),
+  checkAccess: (moduleId: string) => api.get(`/api/modules/access/${moduleId}`),
+  getMyAccess: () => api.get('/api/modules/my-access'),
+  adminGrant: (data: { user_id: string; module_id: string; module_name: string; expires_at?: string }) =>
+    api.post('/api/modules/admin/grant', data),
+  adminRevoke: (data: { user_id: string; module_id: string }) =>
+    api.post('/api/modules/admin/revoke', data),
+  adminListGrants: (params?: { user_id?: string; module_id?: string }) =>
+    api.get('/api/modules/admin/list-grants', { params }),
 }
 
 export const adminApi = {
@@ -481,6 +576,15 @@ export const featuresApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  generatePrompt: (data: { topic: string; category: string; target_ai: string; tone: string; complexity: string; extra_instructions?: string }) =>
+    api.post('/api/features/prompt-forge/generate', data),
+  getPromptCategories: () => api.get('/api/features/prompt-forge/categories'),
+  getPromptExamples: () => api.get('/api/features/prompt-forge/examples'),
+  getAIProviders: () => api.get('/api/ai/providers'),
+  getAIDashboard: (days?: number) => api.get('/api/ai/dashboard', { params: { days } }),
+  getAIHealth: () => api.get('/api/ai/health'),
+  getAICosts: (days?: number) => api.get('/api/ai/costs', { params: { days } }),
+  getCurrentProvider: () => api.get('/api/ai/current-provider'),
 }
 
 export default api

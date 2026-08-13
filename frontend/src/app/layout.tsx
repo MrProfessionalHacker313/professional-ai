@@ -2,6 +2,10 @@ import type { Metadata } from 'next'
 import { Inter, Noto_Nastaliq_Urdu, Noto_Sans_Arabic, Noto_Sans_Devanagari, Noto_Sans_Bengali } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { LanguageProvider } from '@/components/LanguageProvider'
+import { OfflineModeProvider } from '@/components/OfflineModeProvider'
+import OfflineStatusBar from '@/components/OfflineStatusBar'
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
+import PWAInstaller from '@/components/PWAInstaller'
 import './globals.css'
 import { Toaster } from 'react-hot-toast'
 import VersionFooter from '@/components/VersionFooter'
@@ -141,11 +145,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cryptoObj = typeof window !== 'undefined' ? window.crypto : null
-  const cspNonce = cryptoObj
-    ? Array.from(cryptoObj.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('')
-    : 'static-nonce-secured-only-used-server-side'
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -213,9 +212,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {children}
+            <OfflineModeProvider>
+              {children}
+            </OfflineModeProvider>
           </LanguageProvider>
         </ThemeProvider>
+        {/* Global offline infrastructure */}
+        <ServiceWorkerRegistration />
+        <OfflineStatusBar />
+        <PWAInstaller />
         <Toaster
           position="top-right"
           toastOptions={{

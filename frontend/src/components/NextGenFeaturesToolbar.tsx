@@ -22,7 +22,9 @@ import {
   Cpu,
   Mic,
   Newspaper,
+  Wand2,
 } from 'lucide-react'
+import PromptForgePanel from '@/components/PromptForgePanel'
 
 interface FeaturePanelProps {
   isOpen: boolean
@@ -45,6 +47,7 @@ const features = [
   { id: 'router', name: 'Smart Router', icon: Cpu, color: 'from-fuchsia-500 to-pink-500' },
   { id: 'voice-clone', name: 'Voice Clone', icon: Volume2, color: 'from-sky-500 to-indigo-500' },
   { id: 'news', name: 'News Monitor', icon: Newspaper, color: 'from-lime-500 to-green-500' },
+  { id: 'prompt-forge', name: 'Prompt Forge', icon: Wand2, color: 'from-amber-500 to-orange-500' },
 ]
 
 export default function NextGenFeaturesToolbar({ isOpen, onClose }: FeaturePanelProps) {
@@ -75,7 +78,7 @@ export default function NextGenFeaturesToolbar({ isOpen, onClose }: FeaturePanel
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <div>
             <h2 className="text-2xl font-bold text-white">Next-Gen AI Features</h2>
-            <p className="text-gray-400 text-sm mt-1">15 world-first AI capabilities</p>
+            <p className="text-gray-400 text-sm mt-1">16 world-first AI capabilities</p>
           </div>
           <button
             onClick={onClose}
@@ -120,8 +123,12 @@ export default function NextGenFeaturesToolbar({ isOpen, onClose }: FeaturePanel
 
 function FeaturePanel({ featureId, onClose }: { featureId: string; onClose: () => void }) {
   const feature = features.find(f => f.id === featureId)
-  
+
   if (!feature) return null
+
+  if (featureId === 'prompt-forge') {
+    return <PromptForgePanel onClose={onClose} />
+  }
 
   return (
     <div className="space-y-4">

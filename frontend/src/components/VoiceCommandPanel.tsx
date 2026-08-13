@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Mic, Square, Play, Loader2, X, Volume2, Command, Zap } from 'lucide-react'
+import { Mic, StopCircle, Play, Loader2, X, Volume2, Command, Zap } from 'lucide-react'
 import { featuresApi } from '@/lib/api'
 
 interface VoiceCommandPanelProps {
@@ -145,9 +145,9 @@ export default function VoiceCommandPanel({ onClose }: VoiceCommandPanelProps) {
           }`}
         >
           {isRecording ? (
-            <Square className="w-8 h-8 text-red-400" />
+            <StopCircle className="w-8 h-8 text-red-400" />
           ) : (
-            <Mic className="w-8 h-8 text-white" />
+            <StopCircle className="w-8 h-8 text-red-400" />
           )}
         </motion.button>
         <p className="text-xs text-gray-400 mt-3">

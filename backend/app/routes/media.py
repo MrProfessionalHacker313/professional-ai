@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 from app.config import settings
 from app.database import get_db
@@ -34,8 +35,15 @@ from app.services.media.tts_router import tts_router
 from app.services.media.forced_alignment import forced_alignment_service
 from app.services.media.subtitle_verify import subtitle_verification_service
 from app.services.media.provider_keys import media_key_vault
+from app.services.media.media_providers import media_provider_registry
 from app.services.media.thumbnail_maker import thumbnail_maker_service
 from app.services.media.meme_maker import meme_maker_service
+from app.services.ai_service import ai_service
+from app.services.ai_router import ModelType
+from app.services.credit_service import CreditService
+from app.services.unlimited_mode import subscription_access
+import redis.asyncio as redis
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/media", tags=["Media Engine"])
 
@@ -71,6 +79,23 @@ class VoiceCloneRequest(BaseModel):
     consent: bool = Field(..., description="MUST be true to clone voice")
 
 
+class ScriptGenerateRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=2000)
+    duration_seconds: int = Field(default=30, ge=5, le=600)
+    style: str = Field(default="professional", max_length=100)
+    language: str = Field(default="en", max_length=10)
+
+
+class PromptGenerateRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=2000)
+    media_type: str = Field(default="video", pattern="^(video|picture|poster|animation)$")
+    style: str = Field(default="cinematic", max_length=100)
+    mood: str = Field(default="dramatic", max_length=100)
+    camera_angle: str = Field(default="wide", max_length=100)
+    lighting: str = Field(default="golden_hour", max_length=100)
+    aspect_ratio: str = Field(default="16:9", max_length=20)
+
+
 # ===================================================================
 # Helpers
 # ===================================================================
@@ -85,6 +110,40 @@ async def _get_subscription(db: AsyncSession, user_id: str) -> Subscription:
         db.add(sub)
         await db.flush()
     return sub
+
+
+async def _is_owner_user(user: User) -> bool:
+    """Check if the user is the platform owner or admin (bypasses all paid feature checks)."""
+    return settings.is_owner_email(user.email) or user.is_admin
+
+
+async def _enforce_trial_expiry(db: AsyncSession, sub: Subscription) -> Subscription:
+    """
+    If the user is on a trial plan and trial_end_at has passed,
+    automatically downgrade to free plan and block paid-only features.
+    """
+    if sub.plan == "trial" and sub.trial_end_at:
+        now = datetime.now(timezone.utc)
+        trial_end = sub.trial_end_at
+        if trial_end.tzinfo is None:
+            trial_end = trial_end.replace(tzinfo=timezone.utc)
+        if now >= trial_end:
+            sub.plan = "free"
+            sub.status = "active"
+            sub.trial_start_at = None
+            sub.trial_end_at = None
+            await db.flush()
+    return sub
+
+
+def _is_paid_tier(plan: str) -> bool:
+    """Check if the user is on a paid tier (PRO/MAX/BUSINESS/ENTERPRISE)."""
+    return plan.lower() in ("pro", "pro_yearly", "max", "business", "enterprise")
+
+
+def _is_paid_or_trial(plan: str) -> bool:
+    """Check if the user is on a paid tier or active trial."""
+    return plan.lower() in ("pro", "pro_yearly", "max", "business", "enterprise", "trial")
 
 
 def _job_to_dict(job: MediaJob) -> Dict[str, Any]:
@@ -131,76 +190,296 @@ async def create_media_job(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a media generation job (video, picture, poster, animation)."""
+    try:
+        sub = await _get_subscription(db, str(current_user.id))
+
+        is_owner = _is_owner_user(current_user)
+
+        if not is_owner:
+            sub = await _enforce_trial_expiry(db, sub)
+
+            limits_service = MediaLimitsService(db)
+            allowed, limit_info = await limits_service.check_limit(
+                user_id=str(current_user.id),
+                media_type=request.media_type,
+                plan=sub.plan,
+                status=sub.status,
+            )
+            if not allowed:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=limit_info.get("message", "Daily limit reached"),
+                )
+
+            if not limits_service.validate_duration(request.duration_seconds, sub.plan, sub.status):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Duration {request.duration_seconds}s not available on {sub.plan} plan",
+                )
+
+            if sub.plan == "free" and request.media_type == "video" and request.duration_seconds > 30:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Videos above 30 seconds require a PRO plan. Upgrade to unlock longer videos.",
+                )
+
+            if request.resolution in ("4k", "8k") and not _is_paid_tier(sub.plan):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"{request.resolution.upper()} resolution requires a PRO plan. Upgrade to unlock ultra-max resolution.",
+                )
+
+            voice_consent = request.voice_consent
+        else:
+            limits_service = MediaLimitsService(db)
+            limit_info = {}
+            voice_consent = request.voice_consent
+
+        if request.media_type == "video":
+            has_keys = (
+                media_key_vault.kling.total_keys > 0 or
+                media_key_vault.runway.total_keys > 0 or
+                media_key_vault.fal.total_keys > 0
+            )
+            if not has_keys:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Video provider not configured. Please add video provider keys to continue.",
+                )
+
+        # Consume credits for media generation (paid plans only)
+        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
+        credit_service = CreditService(db, redis_client)
+        credit_cost = CreditService.CREDIT_COSTS.get("image_generation", 10)
+        if request.media_type == "video":
+            credit_cost = 20
+        elif request.media_type == "animation":
+            credit_cost = 15
+
+        if not is_owner and _is_paid_or_trial(sub.plan):
+            decision = subscription_access.check_access(
+                user_id=str(current_user.id),
+                plan=sub.plan,
+                status=sub.status,
+                user_email=current_user.email,
+            )
+            if not decision.unlimited:
+                can_use, reason = await credit_service.can_use_feature(
+                    user_id=str(current_user.id),
+                    feature="image_generation",
+                    subscription=sub,
+                    user_email=current_user.email,
+                )
+                if not can_use:
+                    raise HTTPException(
+                        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                        detail=f"Insufficient credits. You need {credit_cost} credits for this {request.media_type}.",
+                    )
+
+        # Create job
+        job = MediaJob(
+            user_id=current_user.id,
+            job_type=MediaType(request.media_type),
+            status=MediaStatus.QUEUED,
+            topic=request.topic,
+            script=request.script,
+            scenes_text=request.scenes_text,
+            voice_style=VoiceStyle(request.voice_style),
+            voice_prompt=request.voice_prompt,
+            language=request.language,
+            duration_seconds=request.duration_seconds,
+            resolution=MediaResolution(request.resolution),
+            format=request.format,
+            aspect_ratio=request.aspect_ratio,
+            model=request.model,
+            negative_prompt=request.negative_prompt,
+            voice_clone_id=uuid.UUID(request.voice_clone_id) if request.voice_clone_id else None,
+            voice_consent=request.voice_consent,
+            progress=0.0,
+            progress_stage="Queued",
+        )
+        db.add(job)
+        await db.flush()
+
+        # Increment usage
+        await limits_service.increment_usage(str(current_user.id), request.media_type)
+
+        # Consume credits after successful job creation (paid plans only)
+        if not is_owner and _is_paid_or_trial(sub.plan):
+            decision = subscription_access.check_access(
+                user_id=str(current_user.id),
+                plan=sub.plan,
+                status=sub.status,
+                user_email=current_user.email,
+            )
+            if not decision.unlimited:
+                success, msg, remaining = await credit_service.consume_credits(
+                    user_id=str(current_user.id),
+                    amount=credit_cost,
+                    action=f"media_{request.media_type}",
+                    description=f"Generated {request.media_type} ({request.duration_seconds}s, {request.resolution})",
+                    reference_id=str(job.id),
+                )
+                if not success:
+                    raise HTTPException(
+                        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                        detail=f"Insufficient credits. You need {credit_cost} credits for this {request.media_type}.",
+                    )
+
+        await db.commit()
+
+        # Enqueue for processing
+        await media_queue_service.enqueue(str(job.id))
+
+        return {
+            "success": True,
+            "job_id": str(job.id),
+            "status": "queued",
+            "message": f"{request.media_type} generation started",
+            "limits": limit_info,
+            "credits_consumed": 0 if is_owner else (credit_cost if _is_paid_or_trial(sub.plan) else 0),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[media/generate] Unexpected error for user {current_user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during media generation")
+
+
+# ===================================================================
+# AI SCRIPT GENERATOR - Generate professional narration scripts
+# ===================================================================
+
+@router.post("/generate-script")
+async def generate_script(
+    request: ScriptGenerateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    AI generates a full professional narration script + cinematic prompt
+    based on topic, duration, and style.
+    """
     sub = await _get_subscription(db, str(current_user.id))
+    sub = await _enforce_trial_expiry(db, sub)
 
-    # Check limits
-    limits_service = MediaLimitsService(db)
-    allowed, limit_info = await limits_service.check_limit(
-        user_id=str(current_user.id),
-        media_type=request.media_type,
-        plan=sub.plan,
-        status=sub.status,
+    # Build the AI prompt
+    system_prompt = (
+        "You are a professional video scriptwriter and cinematographer. "
+        "Generate a complete, professional narration script for the given topic, "
+        "duration, and style. Also provide a cinematic visual prompt for each scene. "
+        "Return JSON with 'script' (the full narration text) and 'cinematic_prompt' "
+        "(a detailed visual description for the video generation)."
     )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=limit_info.get("message", "Daily limit reached"),
-        )
 
-    # Validate duration for plan
-    if not limits_service.validate_duration(request.duration_seconds, sub.plan, sub.status):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Duration {request.duration_seconds}s not available on {sub.plan} plan",
-        )
-
-    # Voice clone consent check
-    if request.voice_style == "clone" and not request.voice_consent:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Voice cloning requires explicit consent",
-        )
-
-    # Create job
-    job = MediaJob(
-        user_id=current_user.id,
-        job_type=MediaType(request.media_type),
-        status=MediaStatus.QUEUED,
-        topic=request.topic,
-        script=request.script,
-        scenes_text=request.scenes_text,
-        voice_style=VoiceStyle(request.voice_style),
-        voice_prompt=request.voice_prompt,
-        language=request.language,
-        duration_seconds=request.duration_seconds,
-        resolution=MediaResolution(request.resolution),
-        format=request.format,
-        aspect_ratio=request.aspect_ratio,
-        model=request.model,
-        negative_prompt=request.negative_prompt,
-        voice_clone_id=uuid.UUID(request.voice_clone_id) if request.voice_clone_id else None,
-        voice_consent=request.voice_consent,
-        progress=0.0,
-        progress_stage="Queued",
+    user_prompt = (
+        f"Topic: {request.topic}\n"
+        f"Duration: {request.duration_seconds} seconds\n"
+        f"Style: {request.style}\n"
+        f"Language: {request.language}\n\n"
+        f"Generate a professional narration script that fits exactly {request.duration_seconds} seconds "
+        f"of spoken audio (roughly 2.5 words per second). "
+        f"Also provide a cinematic prompt describing the visual style, camera angles, lighting, and mood. "
+        f"Return as JSON: {{\"script\": \"...\", \"cinematic_prompt\": \"...\"}}"
     )
-    db.add(job)
-    await db.flush()
 
-    # Increment usage
-    await limits_service.increment_usage(str(current_user.id), request.media_type)
+    try:
+        result = await ai_service.generate(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model_type=ModelType.CHAT,
+        )
+        content = result.content.strip()
 
-    await db.commit()
+        # Try to parse JSON from the response
+        import json as json_lib
+        try:
+            # Find JSON in the response
+            start = content.find("{")
+            end = content.rfind("}") + 1
+            if start >= 0 and end > start:
+                parsed = json_lib.loads(content[start:end])
+                script = parsed.get("script", content)
+                cinematic_prompt = parsed.get("cinematic_prompt", "")
+            else:
+                script = content
+                cinematic_prompt = ""
+        except Exception:
+            script = content
+            cinematic_prompt = ""
 
-    # Enqueue for processing
-    await media_queue_service.enqueue(str(job.id))
+        return {
+            "success": True,
+            "script": script,
+            "cinematic_prompt": cinematic_prompt,
+            "topic": request.topic,
+            "duration_seconds": request.duration_seconds,
+            "style": request.style,
+            "language": request.language,
+            "provider": result.provider,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Script generation failed: {str(e)}")
 
-    return {
-        "success": True,
-        "job_id": str(job.id),
-        "status": "queued",
-        "message": f"{request.media_type} generation started",
-        "limits": limit_info,
-    }
+
+# ===================================================================
+# PROFESSIONAL PROMPT GENERATOR - Cinematography-grade prompts
+# ===================================================================
+
+@router.post("/generate-prompt")
+async def generate_prompt(
+    request: PromptGenerateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    AI generates professional cinematography-grade prompts for images/videos
+    based on topic, style, mood, camera angle, and lighting.
+    """
+    sub = await _get_subscription(db, str(current_user.id))
+    sub = await _enforce_trial_expiry(db, sub)
+
+    system_prompt = (
+        "You are a professional cinematographer and AI prompt engineer. "
+        "Generate detailed, professional prompts for AI image/video generation. "
+        "Include camera angle, lens type, lighting setup, color grading, mood, "
+        "composition, and technical details like a professional film director would."
+    )
+
+    user_prompt = (
+        f"Topic: {request.topic}\n"
+        f"Media Type: {request.media_type}\n"
+        f"Style: {request.style}\n"
+        f"Mood: {request.mood}\n"
+        f"Camera Angle: {request.camera_angle}\n"
+        f"Lighting: {request.lighting}\n"
+        f"Aspect Ratio: {request.aspect_ratio}\n\n"
+        f"Generate a professional, detailed prompt for AI {request.media_type} generation. "
+        f"Include: camera angle, lens, lighting, color palette, mood, composition, "
+        f"and any technical cinematography details. Make it specific and vivid."
+    )
+
+    try:
+        result = await ai_service.generate(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            model_type=ModelType.CHAT,
+        )
+
+        return {
+            "success": True,
+            "prompt": result.content.strip(),
+            "topic": request.topic,
+            "media_type": request.media_type,
+            "style": request.style,
+            "mood": request.mood,
+            "camera_angle": request.camera_angle,
+            "lighting": request.lighting,
+            "aspect_ratio": request.aspect_ratio,
+            "provider": result.provider,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Prompt generation failed: {str(e)}")
 
 
 # ===================================================================
@@ -421,9 +700,24 @@ async def get_media_limits(
     limits_service = MediaLimitsService(db)
 
     usage = await limits_service.get_usage_summary(str(current_user.id))
+    is_owner = _is_owner_user(current_user)
+
+    if is_owner:
+        durations = limits_service.get_available_durations("max", "active")
+        return {
+            "plan": sub.plan,
+            "videos_used": usage["videos_used"],
+            "pictures_used": usage["pictures_used"],
+            "animations_used": usage["animations_used"],
+            "video_limit": -1,
+            "picture_limit": -1,
+            "animation_limit": -1,
+            "available_durations": durations["durations"],
+            "unlimited": True,
+        }
+
     durations = limits_service.get_available_durations(sub.plan, sub.status)
 
-    # Determine limits
     if sub.plan == "free":
         video_limit = settings.MEDIA_FREE_VIDEO_LIMIT
         picture_limit = settings.MEDIA_FREE_PICTURE_LIMIT
@@ -509,13 +803,7 @@ async def media_engine_status():
             "presets": ["tiktok", "youtube", "reels", "instagram", "story", "custom"],
             "whisper_model": settings.AUTO_EDITOR_WHISPER_MODEL,
         },
-        "engines": {
-            "fal_ai": bool(getattr(settings, "FAL_KEYS", "") or settings.FAL_AI_API_KEY),
-            "kling": bool(getattr(settings, "KLING_KEYS", "") or settings.KLING_API_KEY),
-            "runway": bool(getattr(settings, "RUNWAY_KEYS", "") or settings.RUNWAY_API_KEY),
-            "animatediff": bool(getattr(settings, "ANIMATEDIFF_API_KEY", None)) or bool(getattr(settings, "COMFYUI_URL", None)),
-            "replicate": bool(getattr(settings, "REPLICATE_KEYS", "") or getattr(settings, "ANIMATEDIFF_API_KEY", None)),
-        },
+        "engines": media_provider_registry.get_status()["providers"],
         "key_vault": media_key_vault.get_status() if "media_key_vault" in dir() else {},
         "voice_styles": settings.MEDIA_VOICE_STYLES.split(","),
         "script_languages": settings.MEDIA_SCRIPT_LANGUAGES.split(","),
@@ -592,7 +880,6 @@ async def preview_voice(
         voice_style=voice_style,
         voice_prompt=voice_prompt,
         language=language,
-        align_subtitles=False,  # skip alignment for preview
     )
 
     if not result.get("success"):

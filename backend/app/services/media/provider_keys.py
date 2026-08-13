@@ -128,12 +128,20 @@ class MediaKeyVault:
     """
 
     def __init__(self):
-        self.fal = ProviderKeyManager(getattr(settings, "FAL_KEYS", "").split(","))
-        self.replicate = ProviderKeyManager(getattr(settings, "REPLICATE_KEYS", "").split(","))
-        self.kling = ProviderKeyManager(getattr(settings, "KLING_KEYS", "").split(","))
-        self.runway = ProviderKeyManager(getattr(settings, "RUNWAY_KEYS", "").split(","))
+        self.fal = ProviderKeyManager((getattr(settings, "FAL_KEYS", "") or "").split(","))
+        self.replicate = ProviderKeyManager((getattr(settings, "REPLICATE_KEYS", "") or "").split(","))
+        self.kling = ProviderKeyManager((getattr(settings, "KLING_KEYS", "") or "").split(","))
+        self.runway = ProviderKeyManager((getattr(settings, "RUNWAY_KEYS", "") or "").split(","))
+        self.stability = ProviderKeyManager((getattr(settings, "STABILITY_KEYS", "") or "").split(","))
+        self.luma = ProviderKeyManager((getattr(settings, "LUMA_KEYS", "") or "").split(","))
+        self.pika = ProviderKeyManager((getattr(settings, "PIKA_KEYS", "") or "").split(","))
+        self.hailuo = ProviderKeyManager((getattr(settings, "HAILUO_KEYS", "") or "").split(","))
         self.elevenlabs = ProviderKeyManager(
-            getattr(settings, "ELEVENLABS_KEYS", "").split(","),
+            (getattr(settings, "ELEVENLABS_KEYS", "") or "").split(","),
+            rate_limit_cooldown=120.0,
+        )
+        self.google_tts = ProviderKeyManager(
+            (getattr(settings, "GOOGLE_KEYS", "") or "").split(","),
             rate_limit_cooldown=120.0,
         )
 
@@ -143,7 +151,12 @@ class MediaKeyVault:
             "replicate": self.replicate.get_status(),
             "kling": self.kling.get_status(),
             "runway": self.runway.get_status(),
+            "stability_ai": self.stability.get_status(),
+            "luma": self.luma.get_status(),
+            "pika": self.pika.get_status(),
+            "hailuo": self.hailuo.get_status(),
             "elevenlabs": self.elevenlabs.get_status(),
+            "google_tts": self.google_tts.get_status(),
         }
 
 

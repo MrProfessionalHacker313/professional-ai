@@ -52,6 +52,15 @@ interface OfflineEngineState {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+function getAccessTokenFromCookie(): string | null {
+  if (typeof window === 'undefined') return null
+  const token = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('access_token='))
+    ?.split('=')[1]
+  return token ? decodeURIComponent(token) : null
+}
+
 export function useOfflineMode() {
   const [state, setState] = useState<OfflineEngineState>({
     status: null,
@@ -65,10 +74,13 @@ export function useOfflineMode() {
 
   const fetchStatus = useCallback(async () => {
     try {
+      const accessToken = getAccessTokenFromCookie()
+      const headers: Record<string, string> = {}
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
       const response = await fetch(`${API_BASE}/api/offline/status`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -158,12 +170,14 @@ export function useOfflineMode() {
         stream?: boolean;
       } = {}
     ) => {
+      const accessToken = getAccessTokenFromCookie()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
       const response = await fetch(`${API_BASE}/api/offline/chat`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-        },
+        headers,
         body: JSON.stringify({
           prompt,
           mode: options.mode || "chat",
@@ -191,12 +205,14 @@ export function useOfflineMode() {
 
     const base64Data = base64.split(",")[1];
 
+    const accessToken = getAccessTokenFromCookie()
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+    }
     const response = await fetch(`${API_BASE}/api/offline/voice/transcribe`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-      },
+      headers,
       body: JSON.stringify({
         audio_base64: base64Data,
         language,
@@ -212,12 +228,14 @@ export function useOfflineMode() {
 
   const translateText = useCallback(
     async (text: string, sourceLang: string, targetLang: string) => {
+      const accessToken = getAccessTokenFromCookie()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
       const response = await fetch(`${API_BASE}/api/offline/translate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-        },
+        headers,
         body: JSON.stringify({
           text,
           source_lang: sourceLang,
@@ -236,12 +254,14 @@ export function useOfflineMode() {
 
   const queueForSync = useCallback(
     async (itemType: string, data: Record<string, unknown>) => {
+      const accessToken = getAccessTokenFromCookie()
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
       const response = await fetch(`${API_BASE}/api/offline/sync/queue`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-        },
+        headers,
         body: JSON.stringify({ item_type: itemType, data }),
       });
 
@@ -255,11 +275,14 @@ export function useOfflineMode() {
   );
 
   const syncNow = useCallback(async () => {
+    const accessToken = getAccessTokenFromCookie()
+    const headers: Record<string, string> = {}
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`
+    }
     const response = await fetch(`${API_BASE}/api/offline/sync/now`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
-      },
+      headers,
     });
 
     if (!response.ok) {

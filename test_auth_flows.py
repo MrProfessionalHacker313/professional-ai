@@ -3,7 +3,7 @@ AUTH PERMANENT FIX - Verification Test
 Tests the two completely separated auth flows:
 
 FLOW A: Owner email-only login (no password, no OTP)
-FLOW B: Regular user signup + phone OTP + social OAuth endpoints
+FLOW B: Regular user signup + Google OAuth endpoint
 """
 import sys
 
@@ -132,14 +132,11 @@ def test_3_oauth():
 
         handlers = {
             "google": hasattr(auth, "_handle_google_callback"),
-            "microsoft": hasattr(auth, "_handle_microsoft_callback"),
-            "github": hasattr(auth, "_handle_github_callback"),
-            "apple": hasattr(auth, "_handle_apple_callback"),
         }
         missing = [name for name, ok in handlers.items() if not ok]
 
         passed = oauth_start and oauth_cb and not missing
-        record(3, passed, f"OAuth start+callback routes and 4 handlers (missing: {missing or 'none'})")
+        record(3, passed, f"OAuth start+callback routes and Google handler (missing: {missing or 'none'})")
         if not passed:
             print(f"{FAIL} oauth_start={oauth_start} | oauth_cb={oauth_cb} | missing={missing}")
     except Exception as e:
@@ -176,9 +173,9 @@ def test_4_phone_otp():
 
 
 # =====================================================================
-# TEST 5: CORS
+# TEST 4: CORS
 # =====================================================================
-def test_5_cors():
+def test_4_cors():
     print(f"\n{SEP}")
     print("TEST 5: CORS allows frontend origin")
     print(SEP)
@@ -199,16 +196,16 @@ def test_5_cors():
         has_localhost = "http://localhost:3000" in cors_origins
         has_frontend = "https://professionalai.com" in cors_origins
         passed = bool(cors_origins) and has_localhost and has_frontend
-        record(5, passed, f"CORS origins: {cors_origins or 'NOT FOUND'}")
+        record(4, passed, f"CORS origins: {cors_origins or 'NOT FOUND'}")
     except Exception as e:
         record(5, False, f"CORS test exception: {e}")
         print(f"{FAIL} Unexpected error: {type(e).__name__}: {e}")
 
 
 # =====================================================================
-# TEST 6: Owner never blocked (password/TOTP optional)
+# TEST 5: Owner never blocked (password/TOTP optional)
 # =====================================================================
-def test_6_owner_not_blocked():
+def test_5_owner_not_blocked():
     print(f"\n{SEP}")
     print("TEST 6: Owner can never be blocked (password/TOTP optional)")
     print(SEP)
@@ -218,7 +215,7 @@ def test_6_owner_not_blocked():
         enforce_passkey = get_setting("OWNER_ENFORCE_PASSKEY", False)
 
         passed = not enforce_totp and not enforce_passkey
-        record(6, passed, f"OWNER_ENFORCE_TOTP={enforce_totp}, OWNER_ENFORCE_PASSKEY={enforce_passkey}")
+        record(5, passed, f"OWNER_ENFORCE_TOTP={enforce_totp}, OWNER_ENFORCE_PASSKEY={enforce_passkey}")
         if not passed:
             print(f"{FAIL} Owner enforcement flags incorrectly on")
     except Exception as e:
@@ -233,9 +230,8 @@ def main():
     test_1_owner_email_login()
     test_2_signup()
     test_3_oauth()
-    test_4_phone_otp()
-    test_5_cors()
-    test_6_owner_not_blocked()
+    test_4_cors()
+    test_5_owner_not_blocked()
 
     print(f"\n{SEP}")
     print("AUTH PERMANENT FIX - TEST RESULTS")

@@ -35,20 +35,18 @@ class CacheService:
             return
 
         try:
-            self._redis = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                password=settings.REDIS_PASSWORD,
-                db=settings.REDIS_DB,
+            self._redis = redis.from_url(
+                settings.REDIS_URL,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5,
                 retry_on_timeout=True,
                 max_connections=50,
+                protocol=2,
             )
             # Test connection
             await self._redis.ping()
-            logger.info(f"Redis connected: {settings.REDIS_HOST}:{settings.REDIS_PORT}")
+            logger.info(f"Redis connected: {settings.REDIS_URL}")
         except Exception as e:
             logger.warning(f"Redis connection failed: {e}. Caching disabled.")
             self._enabled = False

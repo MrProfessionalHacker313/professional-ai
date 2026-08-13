@@ -85,10 +85,14 @@ export default function HackingLabPanel({ onClose }: HackingLabPanelProps) {
     setSessions([])
   }
 
-  const copyOutput = (id: string, output: string) => {
-    navigator.clipboard.writeText(output)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
+  const copyOutput = async (id: string, output: string) => {
+    try {
+      await navigator.clipboard.writeText(output)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
   }
 
   const getSeverityColor = (severity?: string) => {

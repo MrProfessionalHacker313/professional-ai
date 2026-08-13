@@ -76,7 +76,7 @@ export default function AdminVault() {
                   <td className="px-4 py-3 font-semibold text-white">{e.project_name}</td>
                   <td className="px-4 py-3">{e.encrypted ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-3">{e.version}</td>
-                  <td className="px-4 py-3">{new Date(e.updated_at).toLocaleString()}</td>
+                  <td className="px-4 py-3">{e.updated_at ? new Date(e.updated_at).toLocaleString() : '-'}</td>
                 </tr>
               ))}
             </tbody>

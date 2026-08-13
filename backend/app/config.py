@@ -4,7 +4,9 @@ Environment-based configuration with validation.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import model_validator
 from typing import List, Optional
+from urllib.parse import urlparse, urlunparse
 
 
 class Settings(BaseSettings):
@@ -44,10 +46,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ENCRYPTION_KEY: str = "change-me-in-production-use-strong-secret"
     INTERNAL_WORKER_SECRET: str = "change-this-internal-secret"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     CSRF_SECRET_KEY: str = "change-me-in-production"
-    SESSION_TIMEOUT_MINUTES: int = 30
+    SESSION_TIMEOUT_MINUTES: int = 525600
     PASSWORD_RESET_TOKEN_EXPIRE_HOURS: int = 1
     MAX_LOGIN_ATTEMPTS: int = 5
     LOCKOUT_DURATION_MINUTES: int = 15
@@ -73,6 +75,18 @@ class Settings(BaseSettings):
     GROQ_KEYS: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     OPENROUTER_KEYS: Optional[str] = None
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_KEYS: Optional[str] = None
+    ANTHROPIC_API_KEY: Optional[str] = None
+    ANTHROPIC_KEYS: Optional[str] = None
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_KEYS: Optional[str] = None
+    MISTRAL_API_KEY: Optional[str] = None
+    MISTRAL_KEYS: Optional[str] = None
+    TOGETHER_API_KEY: Optional[str] = None
+    TOGETHER_KEYS: Optional[str] = None
+    XAI_API_KEY: Optional[str] = None
+    XAI_KEYS: Optional[str] = None
     AI_PROVIDER_TIMEOUT: float = 20.0  # 20s timeout per provider call
     AI_PROVIDER_RETRIES: int = 3       # 3 retries before falling back
     AI_PROVIDER_RETRY_BACKOFF: float = 1.0
@@ -85,6 +99,18 @@ class Settings(BaseSettings):
     GROQ_CODE_MODEL: str = "llama-3.3-70b-versatile"
     OPENROUTER_CHAT_MODEL: str = "deepseek/deepseek-chat"
     OPENROUTER_CODE_MODEL: str = "qwen/qwen2.5-coder-32b-instruct"
+    OPENAI_CHAT_MODEL: str = "gpt-4o-mini"
+    OPENAI_CODE_MODEL: str = "gpt-4o"
+    ANTHROPIC_CHAT_MODEL: str = "claude-sonnet-4-20250514"
+    ANTHROPIC_CODE_MODEL: str = "claude-sonnet-4-20250514"
+    DEEPSEEK_CHAT_MODEL: str = "deepseek-chat"
+    DEEPSEEK_CODE_MODEL: str = "deepseek-reasoner"
+    MISTRAL_CHAT_MODEL: str = "mistral-small-latest"
+    MISTRAL_CODE_MODEL: str = "codestral-latest"
+    TOGETHER_CHAT_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+    TOGETHER_CODE_MODEL: str = "deepseek-ai/DeepSeek-V3"
+    XAI_CHAT_MODEL: str = "grok-beta"
+    XAI_CODE_MODEL: str = "grok-beta"
     AI_CACHE_ENABLED: bool = True
     AI_CACHE_TTL_SECONDS: int = 3600  # 1 hour
     AI_STREAMING_ENABLED: bool = True
@@ -120,11 +146,11 @@ class Settings(BaseSettings):
     MEDIA_VOICE_CLONE_MAX_SECONDS: int = 60
     MEDIA_VOICE_STYLES: str = "professional,casual,news,storytelling"
     MEDIA_FREE_ANIMATION_LIMIT: int = 3
-    MEDIA_FREE_DURATIONS: str = "10,30,60"
+    MEDIA_FREE_DURATIONS: str = "15,30"
     MEDIA_FREE_PICTURE_LIMIT: int = 10
-    MEDIA_FREE_VIDEO_LIMIT: int = 5
+    MEDIA_FREE_VIDEO_LIMIT: int = 2
     MEDIA_PAID_ANIMATION_LIMIT: int = -1
-    MEDIA_PAID_DURATIONS: str = "10,30,60,120,300"
+    MEDIA_PAID_DURATIONS: str = "35,45,60,300,600"
     MEDIA_PAID_PICTURE_LIMIT: int = -1
     MEDIA_PAID_VIDEO_LIMIT: int = -1
 
@@ -181,13 +207,35 @@ class Settings(BaseSettings):
 
     # AI Provider URLs
     FAL_AI_API_KEY: Optional[str] = None
+    FAL_KEYS: Optional[str] = None
     FAL_AI_API_URL: str = "https://queue.fal.run"
     REPLICATE_API_KEY: Optional[str] = None
+    REPLICATE_KEYS: Optional[str] = None
     REPLICATE_API_URL: str = "https://api.replicate.com/v1"
     KLING_API_KEY: Optional[str] = None
+    KLING_KEYS: Optional[str] = None
     KLING_API_URL: str = "https://api.klingai.com"
     RUNWAY_API_KEY: Optional[str] = None
+    RUNWAY_KEYS: Optional[str] = None
     RUNWAY_API_URL: str = "https://api.dev.runwayml.com/v1"
+    STABILITY_API_KEY: Optional[str] = None
+    STABILITY_KEYS: Optional[str] = None
+    STABILITY_API_URL: str = "https://api.stability.ai"
+    LUMA_API_KEY: Optional[str] = None
+    LUMA_KEYS: Optional[str] = None
+    LUMA_API_URL: str = "https://api.lumalabs.ai"
+    PIKA_API_KEY: Optional[str] = None
+    PIKA_KEYS: Optional[str] = None
+    PIKA_API_URL: str = "https://api.pika.art"
+    HAILUO_API_KEY: Optional[str] = None
+    HAILUO_KEYS: Optional[str] = None
+    HAILUO_API_URL: str = "https://api.minimax.chat"
+    ELEVENLABS_API_KEY: Optional[str] = None
+    ELEVENLABS_KEYS: Optional[str] = None
+    ELEVENLABS_API_URL: str = "https://api.elevenlabs.io"
+    GOOGLE_API_KEY: Optional[str] = None
+    GOOGLE_KEYS: Optional[str] = None
+    GOOGLE_TTS_API_URL: str = "https://texttospeech.googleapis.com"
     SEARXNG_URL: str = "http://localhost:8888"
     WHISPER_API_URL: str = "http://localhost:8001"
     TTS_API_URL: str = "http://localhost:8002"
@@ -229,16 +277,8 @@ class Settings(BaseSettings):
     ALLOWED_UPLOAD_EXTENSIONS: str = ".pdf,.docx,.txt,.png,.jpg,.jpeg,.gif"
 
     # OAuth
-    APPLE_CLIENT_ID: str = ""
-    APPLE_CLIENT_SECRET: str = ""
-    FACEBOOK_CLIENT_ID: str = ""
-    FACEBOOK_CLIENT_SECRET: str = ""
-    GITHUB_CLIENT_ID: str = ""
-    GITHUB_CLIENT_SECRET: str = ""
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    MICROSOFT_CLIENT_ID: str = ""
-    MICROSOFT_CLIENT_SECRET: str = ""
 
     # Owner
     OWNER_EMAIL: str = ""
@@ -247,17 +287,14 @@ class Settings(BaseSettings):
     OWNER_ENFORCE_PASSKEY: bool = False
     OWNER_ENFORCE_TOTP: bool = False
 
-    # SMS & Voice
-    TWILIO_ACCOUNT_SID: str = ""
-    TWILIO_AUTH_TOKEN: str = ""
-    TWILIO_PHONE_NUMBER: str = ""
+    # Media / Image Upscaling
     REAL_ESRGAN_API_URL: str = ""
     REAL_ESRGAN_SCALE: int = 4
 
     @property
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     def is_owner_email(self, email: Optional[str]) -> bool:
         """True when the email matches OWNER_EMAIL configured in environment."""
@@ -280,6 +317,16 @@ class Settings(BaseSettings):
             return False
 
         return target in owner_emails
+
+    @model_validator(mode="after")
+    def _inject_redis_password(self):
+        if self.REDIS_PASSWORD and not urlparse(self.REDIS_URL).password:
+            parsed = urlparse(self.REDIS_URL)
+            netloc = f":{self.REDIS_PASSWORD}@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            self.REDIS_URL = urlunparse(parsed._replace(netloc=netloc))
+        return self
 
 
 # Global settings instance

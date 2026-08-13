@@ -4,7 +4,7 @@ Conversation management, message history, search, rename, delete.
 SECURITY HARDENED: RLS, input validation, rate limiting.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, and_, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -123,8 +123,11 @@ class ConversationDetail(ConversationResponse):
 def _error_response(exc: Exception, status_code: int = 500, message: str | None = None):
     """Return a clean JSON error response."""
     from fastapi.responses import JSONResponse
-    logger = __import__("loguru").logger
-    logger.error(f"Chat history endpoint error: {exc}", exc_info=True)
+    try:
+        logger = __import__("loguru").logger
+        logger.error(f"Chat history endpoint error: {exc}", exc_info=True)
+    except Exception:
+        pass
     return JSONResponse(
         status_code=status_code,
         content={
@@ -188,19 +191,32 @@ async def list_conversations(
         result = await db.execute(query)
         conversations = result.scalars().all()
         
-        # Get message counts
+        # Get message counts in a single query
+        msg_count_subq = (
+            select(Message.conversation_id, func.count(Message.id).label('message_count'))
+            .group_by(Message.conversation_id)
+            .subquery()
+        )
+        
+        count_query = (
+            select(Conversation.id, msg_count_subq.c.message_count)
+            .outerjoin(msg_count_subq, Conversation.id == msg_count_subq.c.conversation_id)
+            .where(Conversation.user_id == current_user.id)
+        )
+        if search:
+            count_query = count_query.where(Conversation.title.ilike(search_term))
+        
+        count_result = await db.execute(count_query)
+        msg_counts = {str(row[0]): (row[1] or 0) for row in count_result.all()}
+        
         conv_list = []
         for conv in conversations:
-            msg_count_query = select(func.count(Message.id)).where(Message.conversation_id == conv.id)
-            msg_count_result = await db.execute(msg_count_query)
-            msg_count = msg_count_result.scalar_one_or_none() or 0
-            
             conv_data = ConversationResponse(
                 id=str(conv.id),
-                title=conv.title,
-                created_at=conv.created_at.isoformat(),
-                updated_at=conv.updated_at.isoformat(),
-                message_count=msg_count,
+                title=conv.title or "New Conversation",
+                created_at=conv.created_at.isoformat() if conv.created_at else datetime.now(timezone.utc).isoformat(),
+                updated_at=conv.updated_at.isoformat() if conv.updated_at else datetime.now(timezone.utc).isoformat(),
+                message_count=msg_counts.get(str(conv.id), 0),
             )
             conv_list.append(conv_data)
         
@@ -436,7 +452,7 @@ async def delete_conversation(
         await db.delete(conversation)
         await db.commit()
         
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
         raise
     except ValueError:
@@ -449,9 +465,7 @@ async def delete_conversation(
         return _error_response(exc, message="Failed to delete conversation")
 
 
-# ===================================================================
-# ADMIN ROUTES (Owner can view all conversations)
-# ===================================================================
+@router.delete("/admin/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 
 @router.get("/admin/all", response_model=List[dict])
 @limiter.limit("100/minute")
@@ -542,7 +556,7 @@ async def admin_delete_conversation(
         await db.delete(conversation)
         await db.commit()
         
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content={})
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
         raise
     except ValueError:

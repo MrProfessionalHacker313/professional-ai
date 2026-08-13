@@ -65,7 +65,7 @@ async def seed_plans(db: AsyncSession):
     """Seed default subscription plans into Redis."""
     try:
         import redis.asyncio as redis
-        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
 
         for plan_name, plan_config in DEFAULT_PLANS.items():
             await redis_client.hset(f"plan:{plan_name}", mapping={k: str(v) for k, v in plan_config.items()})

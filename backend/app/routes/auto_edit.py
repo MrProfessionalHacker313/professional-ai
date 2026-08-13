@@ -118,12 +118,14 @@ def _job_to_dict(job: AutoEditorJob) -> Dict[str, Any]:
     }
 
 
-async def _check_pro_access(user_id: str, plan: str, status: str) -> bool:
-    """Check if user has PRO access (auto-editor is PRO-only)."""
+async def _check_pro_access(user: User, plan: str, status: str) -> bool:
+    """Check if user has PRO access (auto-editor is PRO-only). Owners and admins always pass."""
+    if settings.is_owner_email(user.email) or user.is_admin:
+        return True
     if not settings.AUTO_EDITOR_REQUIRES_PRO:
         return True
     decision = subscription_access.check_access(
-        user_id=user_id,
+        user_id=str(user.id),
         plan=plan,
         status=status,
     )
@@ -169,7 +171,7 @@ async def upload_raw_clip(
     Returns a job_id to use when starting the auto-edit.
     """
     sub = await _get_subscription(db, str(current_user.id))
-    if not await _check_pro_access(str(current_user.id), sub.plan, sub.status):
+    if not await _check_pro_access(current_user, sub.plan, sub.status):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Professional editing available on PRO. Upgrade to use this feature.",
@@ -228,7 +230,7 @@ async def start_auto_edit(
 ):
     """Start the professional auto-editing pipeline. All processing on server."""
     sub = await _get_subscription(db, str(current_user.id))
-    if not await _check_pro_access(str(current_user.id), sub.plan, sub.status):
+    if not await _check_pro_access(current_user, sub.plan, sub.status):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Professional editing available on PRO. Upgrade to use this feature.",
@@ -392,7 +394,7 @@ async def apply_manual_edit(
 ):
     """Apply a manual editor action to an existing completed auto-edit job."""
     sub = await _get_subscription(db, str(current_user.id))
-    if not await _check_pro_access(str(current_user.id), sub.plan, sub.status):
+    if not await _check_pro_access(current_user, sub.plan, sub.status):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Manual editing tools available on PRO.",

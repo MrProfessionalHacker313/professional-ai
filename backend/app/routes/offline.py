@@ -56,7 +56,7 @@ class OfflineSyncRequest(BaseModel):
 # ===================================================================
 
 @router.get("/status")
-async def get_offline_status(current_user: User = Depends(get_current_user)):
+async def get_offline_status():
     """Get current offline mode status and capabilities."""
     return await offline_engine.get_status()
 

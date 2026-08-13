@@ -351,13 +351,22 @@ class SubscriptionAccessService:
         user_id: Optional[str] = None,
         plan: Optional[str] = None,
         status: Optional[str] = None,
+        user_email: Optional[str] = None,
         use_cache: bool = True,
     ) -> AccessDecision:
         """
         Check if a user has unlimited access.
         Called on EVERY request.
+        Owner/admin bypass: platform owner always gets unlimited access for free.
         """
-        # Cache lookup (short TTL so downgrades take effect immediately)
+        if settings.is_owner_email(user_email):
+            return AccessDecision(
+                unlimited=True,
+                plan=plan or "free",
+                status=status or "active",
+                reason="Owner account - all paid features unlocked for free",
+            )
+
         cache_key = f"{user_id}:{plan}:{status}"
         if use_cache and cache_key in self._cache:
             cached = self._cache[cache_key]

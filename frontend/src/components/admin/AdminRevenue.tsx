@@ -40,12 +40,12 @@ export default function AdminRevenue() {
   if (!data) return null
 
   const cards = [
-    { label: 'Total Revenue (USD)', value: `$${data.total_revenue.toLocaleString()}` },
-    { label: 'Total Revenue (PKR)', value: `Rs ${data.total_revenue_pkr.toLocaleString()}` },
-    { label: 'MRR (USD)', value: `$${data.mrr_estimate_usd.toLocaleString()}` },
-    { label: 'MRR (PKR)', value: `Rs ${data.mrr_estimate_pkr.toLocaleString()}` },
-    { label: 'Transactions', value: data.total_transactions.toLocaleString() },
-    { label: 'Avg Transaction', value: `$${data.average_transaction.toLocaleString()}` },
+    { label: 'Total Revenue (USD)', value: `$${(data.total_revenue || 0).toLocaleString()}` },
+    { label: 'Total Revenue (PKR)', value: `Rs ${(data.total_revenue_pkr || 0).toLocaleString()}` },
+    { label: 'MRR (USD)', value: `$${(data.mrr_estimate_usd || 0).toLocaleString()}` },
+    { label: 'MRR (PKR)', value: `Rs ${(data.mrr_estimate_pkr || 0).toLocaleString()}` },
+    { label: 'Transactions', value: (data.total_transactions || 0).toLocaleString() },
+    { label: 'Avg Transaction', value: `$${(data.average_transaction || 0).toLocaleString()}` },
   ]
 
   return (
@@ -75,7 +75,7 @@ export default function AdminRevenue() {
           <tbody className="divide-y divide-slate-800">
             {data.recent_transactions.map((t) => (
               <tr key={t.id} className="bg-slate-950">
-                <td className="px-4 py-3">{t.amount.toLocaleString()}</td>
+                <td className="px-4 py-3">{(t.amount || 0).toLocaleString()}</td>
                 <td className="px-4 py-3">{t.currency}</td>
                 <td className="px-4 py-3 uppercase">{t.payment_method}</td>
                 <td className="px-4 py-3">
@@ -91,7 +91,7 @@ export default function AdminRevenue() {
                     {t.status}
                   </span>
                 </td>
-                <td className="px-4 py-3">{new Date(t.created_at).toLocaleString()}</td>
+                <td className="px-4 py-3">{t.created_at ? new Date(t.created_at).toLocaleString() : '-'}</td>
               </tr>
             ))}
           </tbody>

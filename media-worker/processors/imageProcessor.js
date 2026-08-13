@@ -147,7 +147,7 @@ async function processImage(job) {
       return { ...result, provider: provider.name };
     } catch (err) {
       errors.push(`${provider.name}: ${err.message}`);
-      await updateProgress(job.id, `Image provider ${provider.name} failed, trying next...`);
+      await updateProgress(job.id, `Image provider ${provider.name} failed, trying next...`, 0);
     }
   }
 
@@ -156,6 +156,7 @@ async function processImage(job) {
 
 async function updateProgress(jobId, stage, progress) {
   // Publish to Redis for real-time frontend updates
+  if (!jobId) return;
   const redis = require("ioredis");
   const r = new redis(config.REDIS_URL, { password: config.REDIS_PASSWORD });
   await r.hset(`media-vault:progress:${jobId}`, {

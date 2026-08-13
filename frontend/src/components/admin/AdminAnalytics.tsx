@@ -28,8 +28,8 @@ export default function AdminAnalytics() {
   if (!data) return null
 
   const stats = [
-    { label: 'Media Generated', value: data.media_generated_count.toLocaleString() },
-    { label: 'Code Prompts', value: data.code_prompts_count.toLocaleString() },
+    { label: 'Media Generated', value: (data.media_generated_count || 0).toLocaleString() },
+    { label: 'Code Prompts', value: (data.code_prompts_count || 0).toLocaleString() },
   ]
 
   return (
@@ -52,7 +52,7 @@ export default function AdminAnalytics() {
             className="flex justify-between rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm"
           >
             <span className="text-slate-300">{row.country}</span>
-            <span className="font-semibold text-white">{row.count.toLocaleString()}</span>
+             <span className="font-semibold text-white">{(row.count || 0).toLocaleString()}</span>
           </li>
         ))}
       </ul>
@@ -65,7 +65,7 @@ export default function AdminAnalytics() {
             className="flex justify-between rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm"
           >
             <span className="text-slate-300">{row.feature}</span>
-            <span className="font-semibold text-white">{row.count.toLocaleString()}</span>
+             <span className="font-semibold text-white">{(row.count || 0).toLocaleString()}</span>
           </li>
         ))}
       </ul>

@@ -30,12 +30,15 @@ import {
   LogOut,
   Moon,
   Sun,
-  Globe
+  Globe,
+  Wand2,
+  Activity,
+  Video,
 } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { useLanguage } from '@/components/LanguageProvider'
 import Link from 'next/link'
-import { authApi } from '@/lib/api'
+import { authApi, deleteAllCookies } from '@/lib/api'
 
 interface QuickAction {
   id: string
@@ -86,6 +89,14 @@ const quickActions: QuickAction[] = [
     icon: ImageIcon,
     color: 'from-green-500 to-emerald-500',
     href: '/chat?mode=image'
+  },
+  {
+    id: 'prompt-forge',
+    title: 'Prompt Forge',
+    description: 'Generate unblockable prompts for any AI',
+    icon: Wand2,
+    color: 'from-amber-500 to-orange-500',
+    href: '/prompt-forge'
   },
   {
     id: 'voice-chat',
@@ -158,19 +169,34 @@ export default function DashboardPage() {
 
   if (!mounted) return null
 
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } catch {
+      // ignore logout API errors
+    } finally {
+      deleteAllCookies()
+      window.location.href = '/login'
+    }
+  }
+
   const sidebarItems = [
     { icon: MessageSquare, label: 'Chat', href: '/chat', active: false },
     { icon: Code2, label: 'Code Lab', href: '/chat?mode=code', active: false },
     { icon: Shield, label: 'Security', href: '/chat?mode=security', active: false },
+    { icon: Wand2, label: 'Prompt Forge', href: '/prompt-forge', active: false },
+    { icon: Video, label: 'Media', href: '/media', active: false },
+    { icon: Sparkles, label: 'Modules', href: '/modules', active: false },
     { icon: Lock, label: 'Vault', href: '/vault', active: false },
     { icon: FolderOpen, label: 'Projects', href: '/projects', active: false },
-    { icon: CreditCard, label: 'Upgrade', href: '/pricing', active: false },
+    ...(isOwner ? [] : [{ icon: CreditCard, label: 'Upgrade', href: '/pricing', active: false }]),
     { icon: Settings, label: 'Settings', href: '/settings', active: false },
     // Owner-only: Admin Panel + Use AI toggle. Normal users see neither.
     ...(isOwner
       ? [
           { icon: Shield, label: 'Admin Panel', href: '/admin', active: false },
           { icon: Sparkles, label: 'Use AI', href: '/chat?owner=1', active: false },
+          { icon: Activity, label: 'AI Dashboard', href: '/ai-dashboard', active: false },
         ]
       : []),
   ]
@@ -220,7 +246,7 @@ export default function DashboardPage() {
                 <User className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 {sidebarOpen && <span className="text-sm text-gray-300">Profile</span>}
               </div>
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-800/50 transition-colors cursor-pointer">
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-800/50 transition-colors cursor-pointer" onClick={handleLogout}>
                 <LogOut className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 {sidebarOpen && <span className="text-sm text-gray-300">Logout</span>}
               </div>
@@ -250,18 +276,20 @@ export default function DashboardPage() {
                 {/* Plan Badge */}
                 <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl">
                   <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-medium text-purple-400">PRO Plan</span>
+                  <span className="text-sm font-medium text-purple-400">{isOwner ? 'OWNER - UNLIMITED' : 'PRO Plan'}</span>
                 </div>
 
                 {/* Credits Meter */}
                 <div className="hidden md:flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm text-gray-400">847 / 1,000 credits</span>
+                    <span className="text-sm text-gray-400">{isOwner ? 'UNLIMITED (Owner)' : '847 / 1,000 credits'}</span>
                   </div>
-                  <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: '84.7%' }} />
-                  </div>
+                  {!isOwner && (
+                    <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: '84.7%' }} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Language Selector */}

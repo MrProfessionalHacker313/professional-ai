@@ -4,9 +4,9 @@
  */
 
 const DB_NAME = "professional-ai-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
-type StoreName = "chat_history" | "generated_code" | "translations" | "voice_recordings" | "sync_queue" | "cache";
+type StoreName = "chat_history" | "generated_code" | "translations" | "voice_recordings" | "sync_queue" | "cache" | "chat_conversations";
 
 class OfflineStorage {
   private db: IDBDatabase | null = null;
@@ -33,6 +33,7 @@ class OfflineStorage {
           "voice_recordings",
           "sync_queue",
           "cache",
+          "chat_conversations",
         ];
 
         stores.forEach((storeName) => {
@@ -55,7 +56,11 @@ class OfflineStorage {
         const request = store.get(id);
 
         request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result?.value ?? null);
+        request.onsuccess = () => {
+          if (!request.result) return resolve(null)
+          const { value, ...meta } = request.result
+          resolve(value as T)
+        }
       });
     } catch {
       return null;
@@ -72,11 +77,12 @@ class OfflineStorage {
 
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
-          let results = request.result.map((r) => r.value);
+          const raw = request.result || []
+          let results = raw.map((r: any) => ({ ...(r.value || r), id: r.id, user_id: r.user_id }))
           if (user_id) {
-            results = results.filter((item: any) => item.user_id === user_id);
+            results = results.filter((item: any) => item.user_id === user_id)
           }
-          resolve(results);
+          resolve(results as T[]);
         };
       });
     } catch {
@@ -87,18 +93,22 @@ class OfflineStorage {
   async set<T>(storeName: StoreName, id: string, value: T, user_id?: string): Promise<void> {
     try {
       const db = await this.init();
+      const finalId = id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random().toString(36).slice(2)}`)
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, "readwrite");
         const store = transaction.objectStore(storeName);
-        const request = store.put({
-          id,
-          value,
-          user_id,
-          timestamp: Date.now(),
-        });
-
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
+        try {
+          const request = store.put({
+            id: finalId,
+            value,
+            user_id,
+            timestamp: Date.now(),
+          });
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve();
+        } catch (error) {
+          reject(error)
+        }
       });
     } catch (error) {
       console.error(`Failed to set ${storeName}:`, error);

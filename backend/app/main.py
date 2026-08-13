@@ -33,7 +33,7 @@ from app.middleware.security import (
 from app.middleware.waf import WAFMiddleware
 from app.middleware.session import SessionTimeoutMiddleware
 from app.middleware.compression import CompressionMiddleware
-from app.routes import auth, chat, admin, payments, credits, advanced_features, next_gen_features, offline, vault, media, auto_edit, blog
+from app.routes import auth, chat, admin, payments, credits, advanced_features, next_gen_features, offline, vault, media, auto_edit, blog, chat_history, prompt_forge, ai_dashboard, modules
 from app.services.ai_service import ai_service
 from app.services.ai_router import ai_router
 from app.services.startup_seeder import run_startup_tasks
@@ -300,9 +300,12 @@ app = FastAPI(
 # ===================================================================
 
 # 1. CORS - SABSE PEHLE (outermost) - Bug 3 fix
+# allow_origin_regex handles random Cloudflare tunnel URLs (trycloudflare.com)
+# Cloudflare tunnel URLs are random each time, so we use a regex to match any subdomain
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=r"https?://.*\.trycloudflare\.com",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Request-Id"],
@@ -334,8 +337,8 @@ app.add_middleware(RequestIdMiddleware)
 # 5. Security headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# 6. Session timeout enforcement
-app.add_middleware(SessionTimeoutMiddleware)
+# 6. Session timeout enforcement — disabled: users stay logged in until explicit logout
+# app.add_middleware(SessionTimeoutMiddleware)
 
 # 7. Compression (Brotli/Gzip) - reduces response size by 60-80%
 app.add_middleware(CompressionMiddleware, minimum_size=1024)
@@ -355,6 +358,7 @@ class CSRFProtectMiddleware(BaseHTTPMiddleware):
         "/api/payments/nayapay/webhook",
         "/api/auth/oauth/",
         "/api/auth/owner/",
+        "/api/auth/refresh",
     )
 
     @staticmethod
@@ -460,13 +464,17 @@ app.mount("/metrics", metrics_app)
 
 app.include_router(auth.router)
 app.include_router(chat.router)
+app.include_router(chat_history.router)
 app.include_router(admin.router)
 app.include_router(payments.router)
 app.include_router(credits.router)
+app.include_router(modules.router)
 app.include_router(advanced_features.router)
 app.include_router(next_gen_features.router)
+app.include_router(prompt_forge.router)
 app.include_router(offline.router)
 app.include_router(vault.router)
+app.include_router(ai_dashboard.router)
 app.include_router(media.router)
 app.include_router(auto_edit.router)
 app.include_router(blog.router)

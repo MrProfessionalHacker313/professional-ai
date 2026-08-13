@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { conversationsApi } from '@/lib/api'
+import { offlineStorage } from '@/lib/offline-storage'
 import toast from 'react-hot-toast'
 
 interface Conversation {
@@ -30,7 +31,8 @@ interface ChatSidebarProps {
   currentConversationId: string | null
   onSelectConversation: (conversationId: string) => void
   onNewConversation: () => void
-  onConversationDeleted: () => void
+  onConversationDeleted: (id?: string) => void
+  refreshTrigger?: number
 }
 
 export default function ChatSidebar({
@@ -40,6 +42,7 @@ export default function ChatSidebar({
   onSelectConversation,
   onNewConversation,
   onConversationDeleted,
+  refreshTrigger,
 }: ChatSidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,7 +59,7 @@ export default function ChatSidebar({
     if (mounted) {
       loadConversations()
     }
-  }, [])
+  }, [mounted, refreshTrigger])
 
   useEffect(() => {
     if (isOpen && mounted) {
@@ -64,13 +67,32 @@ export default function ChatSidebar({
     }
   }, [isOpen])
 
+  const loadLocalConversations = async (): Promise<Conversation[]> => {
+    try {
+      const localConvs = await offlineStorage.getAll<any>('chat_conversations')
+      return localConvs
+        .sort((a: any, b: any) => (b.updated_at || 0) - (a.updated_at || 0))
+        .map((item: any) => ({
+          id: item.id,
+          title: item.title || 'New Conversation',
+          created_at: new Date(item.created_at || Date.now()).toISOString(),
+          updated_at: new Date(item.updated_at || Date.now()).toISOString(),
+          message_count: item.message_count || 0,
+        }))
+    } catch {
+      return []
+    }
+  }
+
   const loadConversations = async () => {
     try {
       setLoading(true)
       const response = await conversationsApi.list({ search: searchQuery || undefined })
       setConversations(response.data)
     } catch (error) {
-      console.error('Failed to load conversations:', error)
+      console.error('Failed to load conversations from backend:', error)
+      const localConvs = await loadLocalConversations()
+      setConversations(localConvs)
     } finally {
       setLoading(false)
     }
@@ -98,7 +120,7 @@ export default function ChatSidebar({
       toast.success('Conversation deleted')
       
       if (currentConversationId === id) {
-        onConversationDeleted()
+        await onConversationDeleted(id)
       }
     } catch (error) {
       toast.error('Failed to delete conversation')

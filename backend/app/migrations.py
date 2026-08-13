@@ -97,8 +97,7 @@ async def run_migrations(database_url: str | None = None, schema_path: str | Non
         True if migrations completed successfully, False on fatal error.
     """
     if schema_path is None:
-        # Resolve: backend/app/migrations.py -> ../../database/schema.sql
-        project_root = Path(__file__).parent.parent.parent
+        project_root = Path(__file__).parent.parent
         schema_path = str(project_root / "database" / "schema.sql")
 
     if not os.path.exists(schema_path):
@@ -194,6 +193,8 @@ async def check_core_tables_exist(database_url: str) -> bool:
         "credit_transactions",
         "vault_data",
         "admin_audit_logs",
+        "conversations",
+        "messages",
     ]
 
     # Normalize URL for asyncpg (strip SQLAlchemy driver suffix like +asyncpg)

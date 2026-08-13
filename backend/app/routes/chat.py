@@ -242,6 +242,7 @@ Framework: {code_request.framework or 'Standard'}
                 user_id=str(current_user.id),
                 plan=current_user.subscription.plan,
                 status=current_user.subscription.status,
+                user_email=current_user.email,
             )
             is_unlimited = decision.unlimited
 

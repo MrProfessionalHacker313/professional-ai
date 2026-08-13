@@ -60,7 +60,7 @@ class CreditService:
     FREE_LANGUAGES = ["en", "ur", "hi", "bn"]  # English, Urdu, Hindi, Bengali
     
     # Trial period (days)
-    TRIAL_DAYS = 3
+    TRIAL_DAYS = 10
     
     # Rollover percentage (0 = no rollover, 20 = 20% rollover)
     ROLLOVER_PERCENTAGE = 20
@@ -316,7 +316,8 @@ class CreditService:
         user_id: str,
         feature: str,
         language: str = "en",
-        subscription: Optional[Subscription] = None
+        subscription: Optional[Subscription] = None,
+        user_email: Optional[str] = None,
     ) -> Tuple[bool, str]:
         """
         Check if user can use a feature based on their plan and credits.
@@ -328,16 +329,21 @@ class CreditService:
             )
             subscription = result.scalar_one_or_none()
             if not subscription:
-                # Create default free subscription
                 subscription = Subscription(user_id=user_id, plan="free")
                 self.db.add(subscription)
                 await self.db.flush()
-        
-        # UNLIMITED MODE: Active paid users (PRO/MAX/BUSINESS/ENTERPRISE) get unlimited access
+
+        if not user_email:
+            user_result = await self.db.execute(select(User).where(User.id == user_id))
+            user_row = user_result.scalar_one_or_none()
+            if user_row:
+                user_email = user_row.email
+
         decision = subscription_access.check_access(
             user_id=str(user_id),
             plan=subscription.plan,
             status=subscription.status,
+            user_email=user_email,
         )
         if decision.unlimited:
             return True, "OK"  # Unlimited users bypass all limits
@@ -406,7 +412,8 @@ class CreditService:
         feature: str,
         language: str = "en",
         usage_log_id: Optional[str] = None,
-        subscription: Optional[Subscription] = None
+        subscription: Optional[Subscription] = None,
+        user_email: Optional[str] = None,
     ) -> Tuple[bool, str, dict]:
         """
         Use a feature and consume credits if needed.
@@ -421,17 +428,22 @@ class CreditService:
                 subscription = Subscription(user_id=user_id, plan="free")
                 self.db.add(subscription)
                 await self.db.flush()
-        
-        # Check if user can use the feature
-        can_use, reason = await self.can_use_feature(user_id, feature, language, subscription)
+
+        if not user_email:
+            user_result = await self.db.execute(select(User).where(User.id == user_id))
+            user_row = user_result.scalar_one_or_none()
+            if user_row:
+                user_email = user_row.email
+
+        can_use, reason = await self.can_use_feature(user_id, feature, language, subscription, user_email)
         if not can_use:
             return False, reason, {}
-        
-        # UNLIMITED MODE: Active paid users don't consume credits
+
         decision = subscription_access.check_access(
             user_id=str(user_id),
             plan=subscription.plan,
             status=subscription.status,
+            user_email=user_email,
         )
         if decision.unlimited:
             # Log usage but don't consume credits

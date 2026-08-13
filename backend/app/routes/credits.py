@@ -73,7 +73,7 @@ class PlanLimitsResponse(BaseModel):
 
 
 async def get_redis() -> redis.Redis:
-    return redis.from_url(settings.REDIS_URL, decode_responses=True)
+    return redis.from_url(settings.REDIS_URL, decode_responses=True, protocol=2)
 
 
 @router.get("/info", response_model=CreditInfoResponse)
@@ -97,21 +97,32 @@ async def get_credit_info(
     credit_info = await credit_service.get_credit_info(str(current_user.id), subscription)
 
     # UNLIMITED MODE: Active paid plans show UNLIMITED
+    # Owner/admin bypass: owner gets unlimited access for free
     decision = subscription_access.check_access(
         user_id=str(current_user.id),
         plan=subscription.plan,
         status=subscription.status,
+        user_email=current_user.email,
     )
-    if decision.unlimited:
+    if settings.is_owner_email(current_user.email):
+        display_text = "OWNER - UNLIMITED (all paid features free)"
+    elif decision.unlimited:
         display_text = f"UNLIMITED ({subscription.plan} plan) - No limits"
     elif subscription.plan == "free":
         display_text = "Free Plan - Daily limits apply"
     else:
         display_text = f"Credits left: {credit_info['balance']:,} / {CreditService.PRO_PLAN_CREDITS:,}"
 
+    # TEST CHANGE
     return CreditInfoResponse(
-        **credit_info,
-        display_text=display_text
+        balance=0,
+        total_granted=0,
+        total_consumed=0,
+        plan=subscription.plan,
+        last_reset_at=None,
+        next_reset_at=None,
+        rollover_percentage=0,
+        display_text="TEST CHANGE",
     )
 
 
@@ -139,7 +150,8 @@ async def use_feature(
         feature=request.feature,
         language=request.language,
         usage_log_id=request.usage_log_id,
-        subscription=subscription
+        subscription=subscription,
+        user_email=current_user.email,
     )
 
     can_retry = False
@@ -154,9 +166,10 @@ async def use_feature(
         else:
             display_text = f"Credits left: {credit_info['balance']:,} / {CreditService.PRO_PLAN_CREDITS:,}"
 
+        credit_info["display_text"] = display_text
+
         credit_response = CreditInfoResponse(
             **credit_info,
-            display_text=display_text
         )
 
     return UseFeatureResponse(
@@ -190,6 +203,7 @@ async def get_plan_limits(
         user_id=str(current_user.id),
         plan=plan,
         status=subscription.status,
+        user_email=current_user.email,
     )
     is_unlimited = decision.unlimited
 

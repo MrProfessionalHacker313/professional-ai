@@ -35,11 +35,6 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 OAUTH_STATE_TTL_SECONDS = 900  # 15 minutes
 
-# In-memory phone OTP store (dev fallback when Twilio is not configured)
-_otp_store: dict = {}
-OTP_TTL_SECONDS = 300  # 5 minutes
-OTP_MAX_ATTEMPTS = 5
-
 # In-memory WebAuthn challenge store
 _webauthn_challenges: dict = {}
 WEBAUTHN_CHALLENGE_TTL_SECONDS = 300  # 5 minutes
@@ -277,10 +272,6 @@ def _frontend_oauth_redirect(provider: str, request: Optional[Request] = None) -
 def _provider_credentials(provider: str) -> tuple[Optional[str], Optional[str]]:
     mapping = {
         "google": (settings.GOOGLE_CLIENT_ID, settings.GOOGLE_CLIENT_SECRET),
-        "microsoft": (settings.MICROSOFT_CLIENT_ID, settings.MICROSOFT_CLIENT_SECRET),
-        "github": (settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET),
-        "apple": (settings.APPLE_CLIENT_ID, settings.APPLE_CLIENT_SECRET),
-        "facebook": (settings.FACEBOOK_CLIENT_ID, settings.FACEBOOK_CLIENT_SECRET),
     }
     return mapping.get(provider, (None, None))
 
@@ -301,40 +292,6 @@ def _provider_auth_url(provider: str, state: str, request: Optional[Request] = N
             f"&access_type=offline"
             f"&prompt=consent"
             f"&redirect_uri={safe_redirect}"
-            f"&state={safe_state}"
-        )
-    if provider == "github":
-        return (
-            f"https://github.com/login/oauth/authorize"
-            f"?client_id={settings.GITHUB_CLIENT_ID}"
-            f"&redirect_uri={safe_redirect}"
-            f"&scope=user:email"
-            f"&state={safe_state}"
-        )
-    if provider == "microsoft":
-        return (
-            f"https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
-            f"?client_id={settings.MICROSOFT_CLIENT_ID}"
-            f"&response_type=code"
-            f"&scope=openid%20email%20profile"
-            f"&redirect_uri={safe_redirect}"
-            f"&state={safe_state}"
-        )
-    if provider == "apple":
-        return (
-            f"https://appleid.apple.com/auth/authorize"
-            f"?client_id={settings.APPLE_CLIENT_ID}"
-            f"&response_type=code"
-            f"&scope=name%20email"
-            f"&redirect_uri={safe_redirect}"
-            f"&state={safe_state}"
-        )
-    if provider == "facebook":
-        return (
-            f"https://www.facebook.com/v12.0/dialog/oauth"
-            f"?client_id={settings.FACEBOOK_CLIENT_ID}"
-            f"&redirect_uri={safe_redirect}"
-            f"&scope=email"
             f"&state={safe_state}"
         )
     return ""
@@ -491,108 +448,6 @@ async def _handle_microsoft_callback(code: str, redirect_uri: str, db: AsyncSess
         display_name=microsoft_user.get("name"),
         avatar_url=None,
         access_token=access_token,
-        refresh_token=token_json.get("refresh_token"),
-        db=db,
-        request=request,
-    )
-
-
-async def _handle_github_callback(code: str, redirect_uri: str, db: AsyncSession, request: Request) -> dict:
-    token_json = await _exchange_oauth_code(
-        "github",
-        code,
-        redirect_uri,
-        "https://github.com/login/oauth/access_token",
-        {"grant_type": "authorization_code"},
-        extra_headers={"Accept": "application/json"},
-    )
-
-    access_token = token_json.get("access_token")
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        user_response = await client.get(
-            "https://api.github.com/user",
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github+json"},
-        )
-        if user_response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to fetch user info from GitHub")
-        github_user = user_response.json()
-
-        emails_response = await client.get(
-            "https://api.github.com/user/emails",
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github+json"},
-        )
-        github_emails = emails_response.json() if emails_response.status_code == 200 else []
-
-    primary_email = next(
-        (item.get("email") for item in github_emails if item.get("primary") and item.get("verified")),
-        None,
-    ) or github_user.get("email") or ""
-
-    return await _finalize_oauth_login(
-        provider="github",
-        provider_account_id=str(github_user.get("id") or github_user.get("node_id") or primary_email),
-        email=primary_email,
-        display_name=github_user.get("name") or github_user.get("login"),
-        avatar_url=github_user.get("avatar_url"),
-        access_token=access_token,
-        refresh_token=token_json.get("refresh_token"),
-        db=db,
-        request=request,
-    )
-
-
-def _generate_apple_client_secret() -> str:
-    client_id = settings.APPLE_CLIENT_ID
-    team_id = getattr(settings, "APPLE_TEAM_ID", "") or ""
-    key_id = getattr(settings, "APPLE_KEY_ID", "") or ""
-    private_key_pem = settings.APPLE_CLIENT_SECRET
-
-    if not team_id or not key_id:
-        logger.warning("APPLE_TEAM_ID or APPLE_KEY_ID not configured; falling back to raw APPLE_CLIENT_SECRET")
-        return private_key_pem
-
-    now = datetime.now(timezone.utc)
-    payload = {
-        "iss": team_id,
-        "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(days=180)).timestamp()),
-        "aud": "https://appleid.apple.com",
-        "sub": client_id,
-    }
-    headers = {"kid": key_id, "alg": "ES256"}
-    try:
-        return jose_jwt.encode(payload, private_key_pem, algorithm="ES256", headers=headers)
-    except Exception as e:
-        logger.warning(f"Failed to generate Apple JWT client_secret: {e}; falling back to raw secret")
-        return private_key_pem
-
-
-async def _handle_apple_callback(code: str, redirect_uri: str, db: AsyncSession, request: Request) -> dict:
-    apple_client_secret = _generate_apple_client_secret()
-    token_json = await _exchange_oauth_code(
-        "apple",
-        code,
-        redirect_uri,
-        "https://appleid.apple.com/auth/token",
-        {"grant_type": "authorization_code"},
-        client_secret=apple_client_secret,
-    )
-
-    id_token = token_json.get("id_token")
-    if not id_token:
-        raise HTTPException(status_code=400, detail="Missing id_token from Apple")
-
-    claims = jose_jwt.get_unverified_claims(id_token)
-    email = claims.get("email") or ""
-    subject = str(claims.get("sub") or email)
-
-    return await _finalize_oauth_login(
-        provider="apple",
-        provider_account_id=subject,
-        email=email,
-        display_name=email.split("@")[0] if email else "Apple User",
-        avatar_url=None,
-        access_token=token_json.get("access_token"),
         refresh_token=token_json.get("refresh_token"),
         db=db,
         request=request,
@@ -1006,7 +861,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.post("/oauth/{provider}")
 async def oauth_login(provider: str, request: Request, db: AsyncSession = Depends(get_db)):
     """OAuth login flow with state parameter protection."""
-    valid_providers = ["google", "microsoft", "github", "apple", "facebook"]
+    valid_providers = ["google"]
     if provider not in valid_providers:
         raise HTTPException(status_code=400, detail=f"Provider must be one of: {valid_providers}")
 
@@ -1031,12 +886,6 @@ async def oauth_callback(provider: str, callback_request: OAuthCallbackRequest, 
 
     if provider == "google":
         return await _handle_google_callback(callback_request.code, redirect_uri, db, request)
-    if provider == "microsoft":
-        return await _handle_microsoft_callback(callback_request.code, redirect_uri, db, request)
-    if provider == "github":
-        return await _handle_github_callback(callback_request.code, redirect_uri, db, request)
-    if provider == "apple":
-        return await _handle_apple_callback(callback_request.code, redirect_uri, db, request)
 
     return {"message": "OAuth callback processed"}
 
@@ -1044,7 +893,7 @@ async def oauth_callback(provider: str, callback_request: OAuthCallbackRequest, 
 @router.get("/oauth/callback/{provider}")
 async def oauth_callback_get(provider: str, request: Request, db: AsyncSession = Depends(get_db)):
     """OAuth callback handler for GET requests (direct redirect from provider)."""
-    if provider not in {"google", "microsoft", "github", "apple"}:
+    if provider != "google":
         raise HTTPException(status_code=400, detail="Unsupported OAuth provider")
 
     code = request.query_params.get("code")
@@ -1062,13 +911,7 @@ async def oauth_callback_get(provider: str, request: Request, db: AsyncSession =
 
     redirect_uri = request.query_params.get("redirect_uri") or _frontend_oauth_redirect(provider)
 
-    if provider == "google":
-        return await _handle_google_callback(code, redirect_uri, db, request)
-    if provider == "microsoft":
-        return await _handle_microsoft_callback(code, redirect_uri, db, request)
-    if provider == "github":
-        return await _handle_github_callback(code, redirect_uri, db, request)
-    return await _handle_apple_callback(code, redirect_uri, db, request)
+    return await _handle_google_callback(code, redirect_uri, db, request)
 
 
 @router.post("/2fa/setup")
@@ -1172,9 +1015,13 @@ async def disable_2fa(
 
 @router.get("/me/owner-status")
 async def get_owner_status(current_user: User = Depends(get_current_user)):
-    """Check if current user is the configured platform owner."""
+    """Check if current user is the configured platform owner or admin."""
     is_owner = settings.is_owner_email(current_user.email)
-    return {"is_owner": is_owner, "owner_email": current_user.email if is_owner else None}
+    return {
+        "is_owner": is_owner,
+        "is_admin": current_user.is_admin,
+        "owner_email": current_user.email if is_owner else None,
+    }
 
 
 @router.get("/owner/setup/status")
@@ -1453,179 +1300,6 @@ async def reset_password(request: Request, reset_req: ResetPasswordRequest, db: 
     await db.commit()
 
     return {"message": "Password reset successfully"}
-
-
-# ===================================================================
-# PHONE OTP (SMS) AUTHENTICATION
-# ===================================================================
-
-class SendOTPRequest(BaseModel):
-    phone: str = Field(..., min_length=7, max_length=20)
-    country_code: str = Field("+1", min_length=2, max_length=5)
-
-
-class VerifyOTPRequest(BaseModel):
-    phone: str = Field(..., min_length=7, max_length=20)
-    country_code: str = Field("+1", min_length=2, max_length=5)
-    code: str = Field(..., min_length=4, max_length=10)
-
-
-def _normalize_phone(country_code: str, phone: str) -> str:
-    """Normalize phone to E.164 format: +<country><number>."""
-    country = country_code.strip().lstrip("+")
-    number = phone.strip().replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
-    if not number.isdigit():
-        raise HTTPException(status_code=400, detail="Invalid phone number")
-    return f"+{country}{number}"
-
-
-async def _send_sms_via_twilio(to_phone: str, code: str) -> bool:
-    """Send OTP via Twilio Verify / SMS."""
-    try:
-        if not (settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN and settings.TWILIO_PHONE_NUMBER):
-            return False
-        from twilio.rest import Client
-        client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        message = client.messages.create(
-            body=f"Your Professional AI verification code is: {code}. Valid for 5 minutes.",
-            from_=settings.TWILIO_PHONE_NUMBER,
-            to=to_phone,
-        )
-        return bool(message.sid)
-    except Exception as e:
-        logger.warning(f"Twilio SMS failed: {e}")
-        return False
-
-
-def _store_otp(phone: str, code: str) -> None:
-    """Store OTP in memory with expiry and attempt counter."""
-    _otp_store[phone] = {
-        "code": code,
-        "expires_at": datetime.now(timezone.utc) + timedelta(seconds=OTP_TTL_SECONDS),
-        "attempts": 0,
-    }
-
-
-def _verify_stored_otp(phone: str, code: str) -> bool:
-    """Verify OTP from in-memory store."""
-    entry = _otp_store.get(phone)
-    if not entry:
-        return False
-    if datetime.now(timezone.utc) > entry["expires_at"]:
-        _otp_store.pop(phone, None)
-        return False
-    entry["attempts"] += 1
-    if entry["attempts"] > OTP_MAX_ATTEMPTS:
-        _otp_store.pop(phone, None)
-        return False
-    if secrets.compare_digest(entry["code"], code):
-        _otp_store.pop(phone, None)
-        return True
-    return False
-
-
-@router.post("/phone/send-otp")
-async def send_otp(send_req: SendOTPRequest, db: AsyncSession = Depends(get_db)):
-    """Send OTP code to a phone number via SMS (Twilio) or dev-mode terminal log."""
-    phone = _normalize_phone(send_req.country_code, send_req.phone)
-
-    now = datetime.now(timezone.utc)
-    existing = _otp_store.get(phone)
-    if existing and existing.get("sent_count", 0) >= 3:
-        raise HTTPException(status_code=429, detail="Too many OTP requests. Try again later.")
-
-    code = str(secrets.randbelow(900000) + 100000)  # 6-digit code
-
-    _store_otp(phone, code)
-    _otp_store[phone]["sent_count"] = (existing.get("sent_count", 0) + 1) if existing else 1
-    _otp_store[phone]["sent_at"] = now
-
-    sms_sent = await _send_sms_via_twilio(phone, code)
-
-    if not sms_sent:
-        logger.warning(f"[DEV MODE] OTP for {phone}: {code}")
-
-    payload = {
-        "message": "OTP sent successfully" if sms_sent else "OTP generated (dev mode - see server log)",
-        "dev_mode": not sms_sent,
-        "phone": phone,
-        "expires_in": OTP_TTL_SECONDS,
-    }
-    if not sms_sent and settings.DEBUG:
-        payload["dev_otp"] = code
-    return payload
-
-
-@router.post("/phone/verify-otp")
-async def verify_otp(verify_req: VerifyOTPRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    """Verify OTP code and log the user in. Creates account if phone not registered."""
-    phone = _normalize_phone(verify_req.country_code, verify_req.phone)
-
-    if not _verify_stored_otp(phone, verify_req.code):
-        raise HTTPException(status_code=400, detail="Invalid or expired OTP code")
-
-    result = await db.execute(
-        select(User)
-        .where(User.phone == phone)
-        .options(selectinload(User.two_factor_auth), selectinload(User.subscription))
-    )
-    user = result.scalar_one_or_none()
-
-    is_new_user = False
-    if not user:
-        pseudo_email = f"phone_{phone.replace('+', '')}@phone.professionalai.com"
-        user = User(
-            email=pseudo_email,
-            phone=phone,
-            display_name=f"User {phone[-4:]}",
-            email_verified=True,
-            is_active=True,
-            is_approved=True,
-        )
-        db.add(user)
-        await db.flush()
-        is_new_user = True
-
-    if user.is_banned:
-        raise HTTPException(status_code=403, detail="Account is banned. Contact support.")
-
-    if user.two_factor_auth and user.two_factor_auth.is_enabled:
-        return JSONResponse(
-            status_code=200,
-            content={"requires_2fa": True, "user_id": str(user.id), "is_new_user": is_new_user},
-        )
-
-    await AuthService.invalidate_all_sessions(db, user.id)
-    access_token = AuthService.create_access_token(str(user.id), user.email, user.is_admin)
-    refresh_token = AuthService.create_refresh_token(str(user.id))
-
-    await AuthService.create_session(db, user.id, refresh_token, request)
-
-    user.last_login_at = datetime.now(timezone.utc)
-    user.last_login_ip = request.client.host if request.client else None
-    await db.commit()
-
-    csrf_token = generate_csrf_token()
-
-    return {
-        "user": UserResponse(
-            id=str(user.id),
-            email=user.email,
-            display_name=user.display_name,
-            avatar_url=user.avatar_url,
-            is_admin=user.is_admin,
-            is_approved=user.is_approved,
-            preferred_language=user.preferred_language,
-            plan=user.subscription.plan if user.subscription else "free",
-        ),
-        "tokens": TokenResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            csrf_token=csrf_token,
-        ),
-        "is_new_user": is_new_user,
-    }
 
 
 # ===================================================================

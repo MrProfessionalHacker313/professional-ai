@@ -3,6 +3,8 @@
  * Handles API calls with automatic offline mode support.
  */
 
+import api from './api'
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export interface OfflineChatMessage {
@@ -72,23 +74,12 @@ export async function offlineTranscribe(
 
   const base64Data = base64.split(",")[1];
 
-  const response = await fetch(`${API_BASE}/api/offline/voice/transcribe`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(await getAuthHeaders()),
-    },
-    body: JSON.stringify({
-      audio_base64: base64Data,
-      language,
-    }),
+  const response = await api.post(`${API_BASE}/api/offline/voice/transcribe`, {
+    audio_base64: base64Data,
+    language,
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  return response.json();
+  return response.data
 }
 
 export async function offlineTranslate(

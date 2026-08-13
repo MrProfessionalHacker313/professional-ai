@@ -63,11 +63,15 @@ export default function LanguageBrainPanel({ onClose }: LanguageBrainPanelProps)
     }
   }
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (result?.translated_text) {
-      navigator.clipboard.writeText(result.translated_text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      try {
+        await navigator.clipboard.writeText(result.translated_text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err)
+      }
     }
   }
 

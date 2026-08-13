@@ -6,6 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://professionalai.com
 
 const localizedPaths = [
   '/',
+  '/landing',
   '/chat',
   '/pricing',
   '/features',
@@ -29,6 +30,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'daily',
       priority: 1,
+    },
+    {
+      url: `${SITE_URL}/landing`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
     },
     {
       url: `${SITE_URL}/pricing`,

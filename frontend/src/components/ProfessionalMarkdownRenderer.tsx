@@ -34,9 +34,13 @@ export default function ProfessionalMarkdownRenderer({ content, language = 'en' 
   const tableRowHover = isDark ? 'hover:bg-gray-800/30' : 'hover:bg-gray-50'
 
   const copyToClipboard = async (text: string, codeId: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopiedCode(codeId)
-    setTimeout(() => setCopiedCode(null), 2000)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedCode(codeId)
+      setTimeout(() => setCopiedCode(null), 2000)
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
   }
 
   const detectLanguage = (code: string, fallback?: string): string => {
@@ -172,7 +176,9 @@ export default function ProfessionalMarkdownRenderer({ content, language = 'en' 
           <div className={`flex items-center justify-between ${bgHeader} px-4 py-2 border-b ${borderColorLight}`}>
             <div className="flex items-center gap-2">
               <FileCode className={`w-4 h-4 ${textMuted}`} />
-              <span className={`text-sm ${textSecondary} font-mono`}>{fileName}</span>
+              <span className={`text-sm ${textSecondary} font-mono`}>
+                {(fileName.includes('/') || fileName.includes('\\')) ? `Paste this in ${fileName}` : fileName}
+              </span>
             </div>
             <button
               onClick={() => copyToClipboard(codeString, codeId)}

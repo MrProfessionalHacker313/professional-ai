@@ -23,7 +23,7 @@ from loguru import logger
 import redis.asyncio as aioredis
 
 from app.config import settings
-from app.models.media_engine import MediaJob, MediaStatus
+from app.models.media_engine import MediaJob, MediaStatus, MediaScene, MediaType
 from sqlalchemy import select
 
 
@@ -47,18 +47,22 @@ class BullMQCompatibleQueue:
 
     async def _get_redis(self) -> aioredis.Redis:
         if self._redis is None:
-            self._redis = aioredis.from_url(
-                settings.REDIS_URL,
-                password=getattr(settings, "REDIS_PASSWORD", None),
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=10,
-                retry_on_timeout=True,
-                health_check_interval=30,
-            )
+            try:
+                self._redis = aioredis.from_url(
+                    settings.REDIS_URL,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=10,
+                    retry_on_timeout=True,
+                    health_check_interval=30,
+                    protocol=2,
+                )
+            except Exception as e:
+                logger.error(f"BullMQ Redis connection failed: {e}")
+                raise
         return self._redis
 
-    async def start(self, num_workers: int = None):
+    async def start(self, num_workers: Optional[int] = None):
         """Start Python worker pool (for development / fallback)."""
         if self._running:
             return
@@ -92,11 +96,36 @@ class BullMQCompatibleQueue:
         job_uuid = str(uuid.uuid4())
         timestamp = int(time.time() * 1000)
 
+        # Load the full job from DB so the Node.js worker has all fields it needs
+        from app.database import _get_session_factory
+        from app.models.media_engine import MediaJob, MediaType
+        job_payload = {"job_id": job_id}
+        try:
+            factory = _get_session_factory()
+            async with factory() as db:
+                result = await db.execute(select(MediaJob).where(MediaJob.id == job_id))
+                job = result.scalar_one_or_none()
+                if job:
+                    job_payload = {
+                        "job_id": job_id,
+                        "job_type": job.job_type.value if job.job_type else "video",
+                        "prompt": job.topic or "",
+                        "script": job.script or "",
+                        "width": 1920,
+                        "height": 1080,
+                        "model": job.model or "flux",
+                        "duration": job.duration_seconds or 15,
+                        "voice_style": job.voice_style.value if job.voice_style else "adult_female",
+                        "language": job.language or "en",
+                    }
+        except Exception as e:
+            logger.warning(f"Could not load job {job_id} for enqueue payload: {e}")
+
         # Store full job data in BullMQ format
         job_data = {
             "id": job_uuid,
             "name": f"media-{job_id}",
-            "data": json.dumps({"job_id": job_id}),
+            "data": json.dumps(job_payload),
             "opts": json.dumps({}),
             "timestamp": str(timestamp),
             "processedOn": "0",
@@ -109,7 +138,7 @@ class BullMQCompatibleQueue:
         }
 
         pipe = r.pipeline()
-        pipe.hset(f"{self.BULLMQ_PREFIX}:jobs:{job_uuid}", mapping=job_data)
+        pipe.hset(f"{self.BULLMQ_PREFIX}:jobs:{job_uuid}", mapping=job_data)  # type: ignore[arg-type]
         pipe.zadd(f"{self.BULLMQ_PREFIX}:waiting", {job_uuid: timestamp})
         pipe.lpush(f"{self.QUEUE_NAME}:list", job_uuid)  # for Python workers
         pipe.expire(f"{self.BULLMQ_PREFIX}:jobs:{job_uuid}", 86400)
@@ -128,6 +157,8 @@ class BullMQCompatibleQueue:
                 if result is None:
                     continue
                 _, job_uuid = result
+                if isinstance(job_uuid, bytes):
+                    job_uuid = job_uuid.decode("utf-8")
                 await self._process_bullmq_job(job_uuid, worker_id)
             except asyncio.CancelledError:
                 break
@@ -346,7 +377,7 @@ class BullMQCompatibleQueue:
     async def _report_progress(self, job_id: str, stage: str, progress: float, message: str):
         r = await self._get_redis()
         key = f"{self.PROGRESS_PREFIX}:{job_id}"
-        await r.hset(key, {
+        await r.hset(key, mapping={
             "stage": stage,
             "progress": str(progress),
             "message": message,

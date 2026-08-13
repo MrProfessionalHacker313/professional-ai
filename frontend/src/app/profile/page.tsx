@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { User, CreditCard, Shield, Bell, Moon, Sun, Globe, Save } from 'lucide-react'
 import { useTheme } from '@/components/ThemeProvider'
 import { useLanguage } from '@/components/LanguageProvider'
+import { authApi } from '@/lib/api'
 import Link from 'next/link'
 
 export default function ProfilePage() {
@@ -13,8 +14,16 @@ export default function ProfilePage() {
   const { language, setLanguage } = useLanguage()
   const [name, setName] = useState('')
   const [saved, setSaved] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window !== 'undefined') {
+      authApi.checkIsOwner().then((res) => {
+        setIsOwner(Boolean(res.data?.is_owner))
+      }).catch(() => {})
+    }
+  }, [])
 
   if (!mounted) return null
 
@@ -42,7 +51,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold">{name || 'User'}</h2>
-              <p className="text-sm text-gray-400">Free Plan</p>
+              <p className="text-sm text-gray-400">{isOwner ? 'OWNER - Unlimited' : 'Free Plan'}</p>
             </div>
           </div>
 
@@ -106,10 +115,12 @@ export default function ProfilePage() {
               <Save className="w-4 h-4" />
               {saved ? 'Saved!' : 'Save Changes'}
             </button>
-            <Link href="/pricing" className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-gray-700 hover:border-gray-500 text-sm">
-              <CreditCard className="w-4 h-4" />
-              Upgrade Plan
-            </Link>
+            {!isOwner && (
+              <Link href="/pricing" className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-gray-700 hover:border-gray-500 text-sm">
+                <CreditCard className="w-4 h-4" />
+                Upgrade Plan
+              </Link>
+            )}
           </div>
         </motion.div>
 

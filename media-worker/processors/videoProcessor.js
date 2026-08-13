@@ -210,7 +210,7 @@ async function processVideo(job) {
       return { ...result, provider: provider.name };
     } catch (err) {
       errors.push(`${provider.name}: ${err.message}`);
-      await updateProgress(job.id, `Video provider ${provider.name} failed, trying next...`);
+      await updateProgress(job.id, `Video provider ${provider.name} failed, trying next...`, 0);
     }
   }
 
@@ -218,6 +218,7 @@ async function processVideo(job) {
 }
 
 async function updateProgress(jobId, stage, progress) {
+  if (!jobId) return;
   const redis = require("ioredis");
   const r = new redis(config.REDIS_URL, { password: config.REDIS_PASSWORD });
   await r.hset(`media-vault:progress:${jobId}`, {

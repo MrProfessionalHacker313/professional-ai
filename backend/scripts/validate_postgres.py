@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Load .env from project root
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
